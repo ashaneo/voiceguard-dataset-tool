@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceGuard — Dataset Portal</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-wordmark">VOICEGUARD</div>
+      <div class="login-tagline">Dataset Collection Portal · Research Access Only</div>
+    </div>
+
+    <div id="login-error" class="login-error hidden"></div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input type="email" id="email" class="form-input" placeholder="your@email.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="submit-btn">
+        Sign in
+      </button>
+    </form>
+
+    <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--text3)">
+      Access is restricted to approved research participants.<br>Contact the research team if you need assistance.
+    </p>
+  </div>
+</div>
+
+<script>
+const API = '';
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const err = document.getElementById('login-error');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  err.classList.add('hidden');
+
+  const body = new URLSearchParams({
+    username: document.getElementById('email').value,
+    password: document.getElementById('password').value,
+  });
+
+  try {
+    const res = await fetch(`${API}/api/auth/token`, { method: 'POST', body });
+    const data = await res.json();
+    if (!res.ok) { throw new Error(data.detail || 'Login failed'); }
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('role',  data.role);
+    localStorage.setItem('name',  data.name);
+    localStorage.setItem('pid',   data.participant_id);
+    window.location.href = data.role === 'admin' ? '/admin' : '/volunteer';
+  } catch(ex) {
+    err.textContent = ex.message;
+    err.classList.remove('hidden');
+    btn.disabled = false;
+    btn.innerHTML = 'Sign in';
+  }
+});
+
+// Redirect if already logged in
+const token = localStorage.getItem('token');
+const role  = localStorage.getItem('role');
+if (token) window.location.href = role === 'admin' ? '/admin' : '/volunteer';
+</script>
+</body>
+</html>

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceGuard — Volunteer Portal</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="wordmark">VOICEGUARD</div>
+      <div class="subtitle">Volunteer Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">My Work</div>
+      <div class="nav-item active" onclick="showPage('assignments')" id="nav-assignments">
+        <span class="icon">📋</span> My Assignments
+      </div>
+      <div class="nav-item" onclick="showPage('recordings')" id="nav-recordings">
+        <span class="icon">🎙️</span> My Recordings
+      </div>
+      <div class="nav-section" style="margin-top:12px">Resources</div>
+      <div class="nav-item" onclick="showPage('guide')" id="nav-guide">
+        <span class="icon">📖</span> Recording Guide
+      </div>
+      <div class="nav-section" style="margin-top:12px">Account</div>
+      <div class="nav-item" onclick="showPage('account')" id="nav-account">
+        <span class="icon">🔑</span> Change Password
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatar-initial">?</div>
+      <div class="user-info">
+        <div class="name" id="user-name">—</div>
+        <div class="pid"  id="user-pid">—</div>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="Sign out">⏻</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- Assignments page -->
+    <div id="page-assignments">
+      <div class="topbar">
+        <div><div class="page-title">My Assignments</div><div class="page-sub">Scripts assigned to you by the research team</div></div>
+      </div>
+      <div class="content">
+        <div id="consent-banner" class="alert alert-warn hidden">
+          ⚠️ Your consent form has not been marked as signed. Please contact the research team before recording.
+        </div>
+        <div id="assignments-list"></div>
+      </div>
+    </div>
+
+    <!-- Recordings page -->
+    <div id="page-recordings" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">My Recordings</div><div class="page-sub">All recordings you have submitted</div></div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Submission history</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Recording ID</th><th>Script</th><th>Category</th>
+                <th>Duration</th><th>Quality</th><th>Status</th><th>Submitted</th><th>Notes from admin</th>
+              </tr></thead>
+              <tbody id="recordings-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account / Change Password page -->
+    <div id="page-account" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">Change Password</div><div class="page-sub">Update your account password</div></div>
+      </div>
+      <div class="content">
+        <div class="panel" style="max-width:480px">
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="form-label">Current password</label>
+              <input type="password" id="pwd-current" class="form-input" placeholder="Enter your current password">
+            </div>
+            <div class="form-group">
+              <label class="form-label">New password</label>
+              <input type="password" id="pwd-new" class="form-input" placeholder="At least 6 characters">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm new password</label>
+              <input type="password" id="pwd-confirm" class="form-input" placeholder="Repeat new password">
+            </div>
+            <div id="pwd-error"   class="alert" style="background:#1E0E0A;border-color:#E05C4A40;color:var(--coral);display:none;margin-bottom:12px"></div>
+            <div id="pwd-success" class="alert alert-info" style="display:none;margin-bottom:12px">Password changed successfully.</div>
+            <button class="btn btn-primary" onclick="changePassword()">Update password</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Guide page -->
+    <div id="page-guide" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">Recording Guide</div><div class="page-sub">How to record and submit your calls</div></div>
+      </div>
+      <div class="content">
+        <div class="panel"><div class="panel-body">
+          <h3 style="font-size:15px;margin-bottom:12px">Before you record</h3>
+          <ol style="padding-left:18px;color:var(--text2);font-size:13px;line-height:2">
+            <li>Make sure your consent form has been signed and confirmed by the research team.</li>
+            <li>Install <strong style="color:var(--text)">Cube ACR</strong> on your Android phone for automatic call recording.</li>
+            <li>Read through your assigned script completely before making the call.</li>
+            <li>Coordinate with your partner (the other participant) — one is Speaker 1, one is Speaker 2.</li>
+            <li>Find a quiet location with minimal background noise.</li>
+          </ol>
+          <hr class="divider">
+          <h3 style="font-size:15px;margin-bottom:12px">During the call</h3>
+          <ol style="padding-left:18px;color:var(--text2);font-size:13px;line-height:2">
+            <li>Follow the script as closely as possible.</li>
+            <li>Note the approximate time (in seconds) when each phase starts.</li>
+            <li>Do not laugh or break character — realistic delivery is essential for the dataset.</li>
+            <li>Allow natural pauses between turns.</li>
+          </ol>
+          <hr class="divider">
+          <h3 style="font-size:15px;margin-bottom:12px">Phase timestamps (vishing calls only)</h3>
+          <div class="timestamp-grid">
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">GREETING</div><div style="font-size:12px;color:var(--teal)">When does Speaker 1 say hello? (≈ 0–8s)</div></div>
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">SETUP</div><div style="font-size:12px;color:var(--amber)">When does the problem get introduced?</div></div>
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">ESCALATION</div><div style="font-size:12px;color:#E07A30">When do threats / pressure start?</div></div>
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">HARVEST</div><div style="font-size:12px;color:var(--coral)">When does Speaker 1 ask for payment?</div></div>
+          </div>
+          <hr class="divider">
+          <h3 style="font-size:15px;margin-bottom:12px">After the call</h3>
+          <ol style="padding-left:18px;color:var(--text2);font-size:13px;line-height:2">
+            <li>Locate the recording file on your phone (usually in <span class="mono" style="color:var(--text)">Internal Storage / CallRecordings</span>).</li>
+            <li>Click <strong style="color:var(--text)">"Submit Recording"</strong> on your assigned script.</li>
+            <li>Upload the file and fill in the timestamps and quality information.</li>
+            <li>The research team will review within 48 hours.</li>
+          </ol>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Submit recording modal -->
+<div id="submit-modal" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Submit Recording</span>
+      <button class="modal-close" onclick="closeSubmitModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="submit-script-info" class="alert alert-info" style="margin-bottom:16px"></div>
+      <form id="submit-form">
+        <input type="hidden" id="submit-assignment-id">
+
+        <div class="section-divider">Recording file</div>
+        <div class="form-group">
+          <label class="form-label">Audio file <span>*</span></label>
+          <input type="file" id="audio-file" class="form-input" accept=".wav,.mp3,.m4a,.ogg" required>
+          <div class="form-hint">Accepted: .wav .mp3 .m4a — Max 500MB</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Recording date</label>
+            <input type="date" id="rec-date" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Duration (seconds)</label>
+            <input type="number" id="rec-duration" class="form-input" placeholder="e.g. 240" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Audio quality</label>
+          <select id="rec-quality" class="form-select">
+            <option value="">— select —</option>
+            <option value="good">Good — clear audio</option>
+            <option value="acceptable">Acceptable — some noise</option>
+            <option value="poor">Poor — significant issues</option>
+          </select>
+        </div>
+
+        <div id="timestamp-section">
+          <div class="section-divider">Phase timestamps</div>
+          <div class="alert alert-info">
+            Listen back to your recording and note approximately when each phase started (in seconds from the start of the call).
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Greeting started (seconds)</label>
+              <input type="number" id="t-greeting" class="form-input" placeholder="e.g. 8" min="0">
+              <div class="form-hint" style="color:var(--teal)">Normal opener, introduction</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Setup started (seconds)</label>
+              <input type="number" id="t-setup" class="form-input" placeholder="e.g. 40" min="0">
+              <div class="form-hint" style="color:var(--amber)">Problem / issue introduced</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Escalation started (seconds)</label>
+              <input type="number" id="t-escalation" class="form-input" placeholder="e.g. 105" min="0">
+              <div class="form-hint" style="color:#E07A30">Threats, urgency, pressure</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Harvest started (seconds)</label>
+              <input type="number" id="t-harvest" class="form-input" placeholder="e.g. 195" min="0">
+              <div class="form-hint" style="color:var(--coral)">Asking for payment / details</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider">Quality notes</div>
+        <div class="form-group">
+          <div class="checkbox-row">
+            <input type="checkbox" id="off-script" onchange="toggleOffScript(this)">
+            <label for="off-script">I deviated significantly from the script</label>
+          </div>
+        </div>
+        <div class="form-group hidden" id="off-script-notes-group">
+          <label class="form-label">Describe what changed</label>
+          <textarea id="off-script-notes" class="form-textarea" placeholder="Briefly describe what was different..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Additional notes for the researcher</label>
+          <textarea id="vol-notes" class="form-textarea" placeholder="Any technical issues, background noise, etc."></textarea>
+        </div>
+
+        <div id="submit-error" class="alert" style="background:#1E0E0A;border-color:#E05C4A40;color:var(--coral);display:none"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSubmitModal()">Cancel</button>
+      <button class="btn btn-primary" id="submit-recording-btn" onclick="submitRecording()">
+        Submit recording
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Script content modal -->
+<div id="script-modal" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="script-modal-title">Script</span>
+      <button class="modal-close" onclick="document.getElementById('script-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="script-modal-body" style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text2)"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/';
+
+const headers = { 'Authorization': `Bearer ${token}` };
+const roleLabel = r => r === 'scammer' ? 'Speaker 1' : 'Speaker 2';
+
+// Init user info
+const name = localStorage.getItem('name') || '?';
+document.getElementById('user-name').textContent = name;
+document.getElementById('user-pid').textContent  = localStorage.getItem('pid') || '—';
+document.getElementById('avatar-initial').textContent = name[0].toUpperCase();
+
+function logout() {
+  localStorage.clear();
+  window.location.href = '/';
+}
+
+function showPage(page) {
+  ['assignments','recordings','guide','account'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.toggle('hidden', p !== page);
+    document.getElementById(`nav-${p}`).classList.toggle('active', p === page);
+  });
+  if (page === 'recordings') loadRecordings();
+}
+
+// ── Assignments ──────────────────────────────────────────────────
+async function loadAssignments() {
+
+  const res  = await fetch(`${API}/api/volunteer/assignments`, { headers });
+  const data = await res.json();
+  if (!res.ok) { logout(); return; }
+
+  const me = await (await fetch(`${API}/api/auth/me`, { headers })).json();
+  if (!me.consent_signed) document.getElementById('consent-banner').classList.remove('hidden');
+
+  const container = document.getElementById('assignments-list');
+  if (!data.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No scripts assigned yet.<br>The research team will assign scripts shortly.</p></div>`;
+    return;
+  }
+
+  const pending   = data.filter(a => !a.completed);
+  const completed = data.filter(a =>  a.completed);
+
+  container.innerHTML = '';
+
+  if (pending.length) {
+    container.innerHTML += `<div class="section-divider">Pending (${pending.length})</div>`;
+    pending.forEach(a => container.appendChild(buildScriptCard(a)));
+  }
+  if (completed.length) {
+    container.innerHTML += `<div class="section-divider" style="margin-top:28px">Completed (${completed.length})</div>`;
+    completed.forEach(a => container.appendChild(buildScriptCard(a)));
+  }
+}
+
+function buildScriptCard(a) {
+  const s   = a.script;
+  const rec = a.recording;
+  const isVishing = s.call_type === 'vishing';
+  const categoryLabel = s.category.replace('_', ' ').toUpperCase();
+
+  const card = document.createElement('div');
+  card.className = 'script-card';
+
+  let statusHtml = '';
+  if (a.completed) {
+    statusHtml = `<span class="badge badge-approved">completed</span>`;
+  } else if (rec) {
+    const cls = { pending: 'badge-pending', reviewed: 'badge-reviewed', rejected: 'badge-rejected' }[rec.status] || 'badge-gray';
+    statusHtml = `<span class="badge ${cls}">${rec.status}</span>`;
+  } else {
+    statusHtml = `<span class="badge badge-gray">not submitted</span>`;
+  }
+
+  const roleHtml = `<span class="${a.role === 'scammer' ? 'pill-scammer' : 'pill-victim'}">${roleLabel(a.role)}</span>`;
+
+  card.innerHTML = `
+    <div class="script-card-header">
+      <div>
+        <div class="script-card-title">${s.title}</div>
+        <div class="script-card-meta">
+          <span class="mono" style="color:var(--text3)">${s.script_id}</span>
+          &nbsp;·&nbsp;${categoryLabel}
+          &nbsp;·&nbsp;${s.estimated_duration_sec ? `~${Math.round(s.estimated_duration_sec/60)} min` : 'duration TBD'}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+        ${roleHtml} ${statusHtml}
+      </div>
+    </div>
+    ${isVishing ? `<div class="script-phase-bar">
+      <span class="phase-greeting" style="flex:2" title="Greeting"></span>
+      <span class="phase-setup" style="flex:2" title="Setup"></span>
+      <span class="phase-escalation" style="flex:2" title="Escalation"></span>
+      <span class="phase-harvest" style="flex:2" title="Harvest"></span>
+    </div>` : '<div style="height:3px;background:var(--teal);border-radius:2px;margin:10px 0;opacity:.5"></div>'}
+    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:12px">
+      <div>
+        <span class="badge ${isVishing ? 'badge-vishing' : 'badge-benign'}">${s.call_type}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        ${s.has_content ? `<button class="btn btn-ghost btn-sm" onclick="viewScript(${s.id},'${s.title.replace(/'/g,"\\'")}')">📄 View script</button>` : ''}
+        ${!rec && !a.completed ? `<button class="btn btn-primary btn-sm" onclick="openSubmitModal(${a.id}, '${s.title.replace(/'/g,"\\'")}', '${s.call_type}')">🎙️ Submit recording</button>` : ''}
+        ${rec && rec.status === 'rejected' ? `<button class="btn btn-primary btn-sm" onclick="openSubmitModal(${a.id}, '${s.title.replace(/'/g,"\\'")}', '${s.call_type}')">🔄 Resubmit</button>` : ''}
+      </div>
+    </div>
+    ${rec && rec.admin_notes ? `<div class="alert alert-warn" style="margin-top:12px;font-size:12px"><strong>Admin note:</strong> ${rec.admin_notes}</div>` : ''}
+  `;
+  return card;
+}
+
+async function viewScript(scriptId, title) {
+  const res  = await fetch(`${API}/api/volunteer/scripts/${scriptId}`, { headers });
+  const data = await res.json();
+  document.getElementById('script-modal-title').textContent = title;
+  document.getElementById('script-modal-body').textContent  = data.content || 'Script content not available.';
+  document.getElementById('script-modal').classList.remove('hidden');
+}
+
+// ── Submit modal ─────────────────────────────────────────────────
+let currentCallType = 'vishing';
+
+function openSubmitModal(assignmentId, title, callType) {
+  currentCallType = callType;
+  document.getElementById('submit-assignment-id').value = assignmentId;
+  document.getElementById('submit-script-info').textContent = `Submitting recording for: ${title}`;
+  document.getElementById('timestamp-section').style.display = callType === 'vishing' ? '' : 'none';
+  document.getElementById('submit-form').reset();
+  document.getElementById('submit-error').style.display = 'none';
+  document.getElementById('submit-modal').classList.remove('hidden');
+}
+
+function closeSubmitModal() {
+  document.getElementById('submit-modal').classList.add('hidden');
+}
+
+function toggleOffScript(cb) {
+  document.getElementById('off-script-notes-group').classList.toggle('hidden', !cb.checked);
+}
+
+async function submitRecording() {
+  const btn = document.getElementById('submit-recording-btn');
+  const err = document.getElementById('submit-error');
+  const file = document.getElementById('audio-file').files[0];
+  if (!file) { err.textContent = 'Please select an audio file.'; err.style.display=''; return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Uploading...';
+  err.style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('assignment_id',  document.getElementById('submit-assignment-id').value);
+  fd.append('audio_file',     file);
+  fd.append('duration_sec',   document.getElementById('rec-duration').value || '');
+  fd.append('audio_quality',  document.getElementById('rec-quality').value);
+  fd.append('off_script',     document.getElementById('off-script').checked);
+  fd.append('off_script_notes', document.getElementById('off-script-notes').value);
+  fd.append('volunteer_notes',  document.getElementById('vol-notes').value);
+  fd.append('recording_date', document.getElementById('rec-date').value);
+
+  if (currentCallType === 'vishing') {
+    fd.append('t_greeting',   document.getElementById('t-greeting').value  || '');
+    fd.append('t_setup',      document.getElementById('t-setup').value     || '');
+    fd.append('t_escalation', document.getElementById('t-escalation').value || '');
+    fd.append('t_harvest',    document.getElementById('t-harvest').value   || '');
+  }
+
+  try {
+    const res  = await fetch(`${API}/api/volunteer/recordings/submit`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Submission failed');
+    closeSubmitModal();
+    await loadAssignments();
+  } catch(ex) {
+    err.textContent = ex.message; err.style.display = '';
+  } finally {
+    btn.disabled = false; btn.innerHTML = 'Submit recording';
+  }
+}
+
+// ── Recordings ────────────────────────────────────────────────────
+async function loadRecordings() {
+  const res  = await fetch(`${API}/api/volunteer/recordings`, { headers });
+  const data = await res.json();
+  const tbody = document.getElementById('recordings-tbody');
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">No recordings submitted yet</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(r => {
+    const statusCls = { pending:'badge-pending', approved:'badge-approved', rejected:'badge-rejected', reviewed:'badge-reviewed' }[r.status] || 'badge-gray';
+    return `<tr>
+      <td class="mono" style="font-size:12px;color:var(--text2)">${r.recording_id}</td>
+      <td>${r.script_title || '—'}</td>
+      <td><span class="badge badge-gray">${(r.script_category||'').replace('_',' ')}</span></td>
+      <td>${r.duration_sec ? `${Math.floor(r.duration_sec/60)}:${String(r.duration_sec%60).padStart(2,'0')}` : '—'}</td>
+      <td>${r.audio_quality ? `<span class="badge badge-gray">${r.audio_quality}</span>` : '—'}</td>
+      <td><span class="badge ${statusCls}">${r.status}</span></td>
+      <td style="color:var(--text3);font-size:12px">${new Date(r.submitted_at).toLocaleDateString()}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:200px">${r.admin_notes || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Change password ───────────────────────────────────────────────
+async function changePassword() {
+  const err = document.getElementById('pwd-error');
+  const ok  = document.getElementById('pwd-success');
+  err.style.display = 'none'; ok.style.display = 'none';
+  const current = document.getElementById('pwd-current').value;
+  const newPwd  = document.getElementById('pwd-new').value;
+  const confirm = document.getElementById('pwd-confirm').value;
+  if (!current || !newPwd) { err.textContent = 'Please fill in all fields.'; err.style.display=''; return; }
+  if (newPwd !== confirm)  { err.textContent = 'New passwords do not match.'; err.style.display=''; return; }
+  if (newPwd.length < 6)   { err.textContent = 'New password must be at least 6 characters.'; err.style.display=''; return; }
+  const res = await fetch(`${API}/api/volunteer/change-password`, {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ current_password: current, new_password: newPwd }),
+  });
+  if (res.ok) {
+    ok.style.display = '';
+    document.getElementById('pwd-current').value = '';
+    document.getElementById('pwd-new').value = '';
+    document.getElementById('pwd-confirm').value = '';
+  } else {
+    const d = await res.json();
+    err.textContent = d.detail || 'Failed to change password.'; err.style.display = '';
+  }
+}
+
+loadAssignments();
+</script>
+</body>
+</html>

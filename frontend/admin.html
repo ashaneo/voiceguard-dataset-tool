@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceGuard — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="wordmark">VOICEGUARD</div>
+      <div class="subtitle">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="icon">⬛</span> Dashboard</div>
+      <div class="nav-section" style="margin-top:8px">Dataset</div>
+      <div class="nav-item" onclick="showPage('recordings')" id="nav-recordings"><span class="icon">🎙️</span> Recordings</div>
+      <div class="nav-item" onclick="showPage('scripts')" id="nav-scripts"><span class="icon">📄</span> Scripts</div>
+      <div class="nav-section" style="margin-top:8px">Participants</div>
+      <div class="nav-item" onclick="showPage('volunteers')" id="nav-volunteers"><span class="icon">👥</span> Volunteers</div>
+      <div class="nav-item" onclick="showPage('assignments')" id="nav-assignments"><span class="icon">🔗</span> Assignments</div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" style="background:#3C2A6A">A</div>
+      <div class="user-info">
+        <div class="name">Admin</div>
+        <div class="pid mono">ADMIN</div>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="Sign out">⏻</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- Dashboard -->
+    <div id="page-dashboard">
+      <div class="topbar">
+        <div><div class="page-title">Dashboard</div><div class="page-sub">Dataset collection overview</div></div>
+        <div class="topbar-right">
+          <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="stat-grid" id="stat-grid"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Class balance</span></div>
+            <div class="panel-body" id="class-balance-body"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Recent submissions</span></div>
+            <div class="table-wrap">
+              <table><thead><tr><th>ID</th><th>Category</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="recent-tbody"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recordings -->
+    <div id="page-recordings" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">Recordings</div><div class="page-sub">Review and approve submissions</div></div>
+        <div class="topbar-right" style="gap:8px">
+          <select id="category-filter-rec" class="form-select" style="width:160px" onchange="loadRecordings()">
+            <option value="">All categories</option>
+            <option value="irs">IRS / Tax fraud</option>
+            <option value="bank">Bank suspension</option>
+            <option value="tech_support">Tech support</option>
+            <option value="social_security">Social security</option>
+            <option value="prize">Prize / Lottery</option>
+            <option value="utility">Utility</option>
+            <option value="benign">Benign</option>
+          </select>
+          <select id="status-filter" class="form-select" style="width:160px" onchange="loadRecordings()">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Recording ID</th><th>Script</th><th>Category</th><th>Type</th>
+                <th>Speaker 1</th><th>Speaker 2</th><th>Duration</th><th>Quality</th>
+                <th>Timestamps</th><th>Status</th><th>Submitted</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="recordings-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <div id="page-scripts" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">Scripts</div><div class="page-sub">Manage vishing and benign scripts</div></div>
+        <div class="topbar-right" style="gap:8px">
+          <select id="category-filter-scripts" class="form-select" style="width:160px" onchange="loadScripts()">
+            <option value="">All categories</option>
+            <option value="irs">IRS / Tax fraud</option>
+            <option value="bank">Bank suspension</option>
+            <option value="tech_support">Tech support</option>
+            <option value="social_security">Social security</option>
+            <option value="prize">Prize / Lottery</option>
+            <option value="utility">Utility</option>
+            <option value="benign">Benign</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openScriptModal()">+ Add script</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Script ID</th><th>Title</th><th>Category</th><th>Type</th>
+                <th>Duration</th><th>Assignees (slots)</th><th>Recordings</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="scripts-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Volunteers -->
+    <div id="page-volunteers" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">Volunteers</div><div class="page-sub">Manage research participants</div></div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="openVolModal()">+ Add volunteer</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Participant ID</th><th>Name</th><th>Email</th><th>Android</th>
+                <th>Consent</th><th>Assigned</th><th>Completed</th><th>Status</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="volunteers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignments -->
+    <div id="page-assignments" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">Assignments</div><div class="page-sub">Assign scripts to volunteers</div></div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="openAssignModal()">+ Assign script</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Volunteer</th><th>Script</th><th>Category</th><th>Role</th>
+                <th>Assigned</th><th>Status</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="assignments-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Review modal -->
+<div id="review-modal" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Review Recording</span>
+      <button class="modal-close" onclick="closeModal('review-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="review-id">
+      <div id="review-info" class="alert alert-info" style="margin-bottom:16px"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select id="review-status" class="form-select">
+            <option value="pending">Pending</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Audio quality</label>
+          <select id="review-quality" class="form-select">
+            <option value="">— unchanged —</option>
+            <option value="good">Good</option>
+            <option value="acceptable">Acceptable</option>
+            <option value="poor">Poor</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="checkbox-row">
+          <input type="checkbox" id="review-ts-verified">
+          <label for="review-ts-verified">Timestamps verified by researcher</label>
+        </div>
+      </div>
+      <div class="section-divider">Verified timestamps (override if needed)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">t_greeting (seconds)</label>
+          <input type="number" id="review-t-greeting" class="form-input" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">t_setup (seconds)</label>
+          <input type="number" id="review-t-setup" class="form-input" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">t_escalation (seconds)</label>
+          <input type="number" id="review-t-escalation" class="form-input" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">t_harvest (seconds)</label>
+          <input type="number" id="review-t-harvest" class="form-input" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Admin notes (visible to volunteer)</label>
+        <textarea id="review-notes" class="form-textarea" placeholder="Feedback, issues, instructions for resubmission..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('review-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitReview()">Save review</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add volunteer modal -->
+<div id="vol-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Volunteer</span>
+      <button class="modal-close" onclick="closeModal('vol-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Full name <span>*</span></label>
+        <input type="text" id="vol-name" class="form-input" placeholder="e.g. Ashan Perera"></div>
+      <div class="form-group"><label class="form-label">Email address <span>*</span></label>
+        <input type="email" id="vol-email" class="form-input" placeholder="volunteer@email.com"></div>
+      <div class="form-group"><label class="form-label">Temporary password <span>*</span></label>
+        <input type="text" id="vol-password" class="form-input" placeholder="They can change this later"></div>
+      <div class="form-group">
+        <div class="checkbox-row">
+          <input type="checkbox" id="vol-android">
+          <label for="vol-android">Has Android phone (for call recording)</label>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label>
+        <textarea id="vol-notes" class="form-textarea" placeholder="Optional internal notes..."></textarea></div>
+      <div id="vol-error" class="alert" style="background:#1E0E0A;border-color:#E05C4A40;color:var(--coral);display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('vol-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createVolunteer()">Add volunteer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit script modal -->
+<div id="script-modal" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="script-modal-title">Add Script</span>
+      <button class="modal-close" onclick="closeModal('script-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="s-id-row" class="form-row">
+        <div class="form-group"><label class="form-label">Script ID <span>*</span></label>
+          <input type="text" id="s-id" class="form-input" placeholder="e.g. IRS_001"></div>
+        <div class="form-group"><label class="form-label">Title <span>*</span></label>
+          <input type="text" id="s-title" class="form-input" placeholder="e.g. IRS Arrest Warrant"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Category <span>*</span></label>
+          <select id="s-cat" class="form-select">
+            <option value="irs">IRS / Tax fraud</option>
+            <option value="bank">Bank suspension</option>
+            <option value="tech_support">Tech support</option>
+            <option value="social_security">Social security</option>
+            <option value="prize">Prize / Lottery</option>
+            <option value="utility">Utility disconnection</option>
+            <option value="benign">Benign</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Call type <span>*</span></label>
+          <select id="s-type" class="form-select">
+            <option value="vishing">Vishing</option>
+            <option value="benign">Benign</option>
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Description</label>
+        <input type="text" id="s-desc" class="form-input" placeholder="Brief description of the scenario"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Est. duration (seconds)</label>
+          <input type="number" id="s-dur" class="form-input" placeholder="e.g. 240"></div>
+        <div class="form-group"><label class="form-label">Expected t_greeting (s)</label>
+          <input type="number" id="s-tg" class="form-input" placeholder="e.g. 8"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Expected t_setup (s)</label>
+          <input type="number" id="s-ts" class="form-input" placeholder="e.g. 40"></div>
+        <div class="form-group"><label class="form-label">Expected t_escalation (s)</label>
+          <input type="number" id="s-te" class="form-input" placeholder="e.g. 105"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Expected t_harvest (s)</label>
+        <input type="number" id="s-th" class="form-input" placeholder="e.g. 195"></div>
+      <div class="form-group"><label class="form-label">Script content</label>
+        <textarea id="s-content" class="form-textarea" style="min-height:200px;font-family:var(--mono);font-size:12px" placeholder="Paste full script here..."></textarea></div>
+
+      <!-- Assignees section — only shown in edit mode -->
+      <div id="s-assignees-section" class="hidden">
+        <div class="section-divider">Volunteers assigned to this script</div>
+        <div id="s-assignees-list" style="margin-bottom:12px"></div>
+        <div id="s-add-volunteer-row" style="display:flex;gap:8px;align-items:flex-end">
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label">Add volunteer</label>
+            <select id="s-add-vol" class="form-select"><option value="">— select —</option></select>
+          </div>
+          <div class="form-group" style="width:130px;margin-bottom:0">
+            <label class="form-label">Role</label>
+            <select id="s-add-role" class="form-select">
+              <option value="scammer">Speaker 1</option>
+              <option value="victim">Speaker 2</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="addAssigneeToScript()" style="margin-bottom:1px">+ Assign</button>
+        </div>
+        <div id="s-assign-error" class="alert" style="background:#1E0E0A;border-color:#E05C4A40;color:var(--coral);display:none;margin-top:8px"></div>
+      </div>
+
+      <div id="script-error" class="alert" style="background:#1E0E0A;border-color:#E05C4A40;color:var(--coral);display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('script-modal')">Cancel</button>
+      <button class="btn btn-primary" id="script-modal-submit-btn" onclick="saveScript()">Add script</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign modal -->
+<div id="assign-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Assign Script to Volunteer</span>
+      <button class="modal-close" onclick="closeModal('assign-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Volunteer <span>*</span></label>
+        <select id="assign-vol" class="form-select"><option value="">— select volunteer —</option></select></div>
+      <div class="form-group"><label class="form-label">Script <span>*</span></label>
+        <select id="assign-script" class="form-select" onchange="checkScriptCapacity()"><option value="">— select script —</option></select>
+        <div id="assign-capacity" style="font-size:12px;margin-top:6px;color:var(--text3)"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Role <span>*</span></label>
+        <select id="assign-role" class="form-select">
+          <option value="scammer">Scammer</option>
+          <option value="victim">Victim</option>
+        </select></div>
+      <div id="assign-error" class="alert" style="background:#1E0E0A;border-color:#E05C4A40;color:var(--coral);display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('assign-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createAssignment()">Assign</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+const token = localStorage.getItem('token');
+if (!token || localStorage.getItem('role') !== 'admin') window.location.href = '/';
+const H = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+const HF = { 'Authorization': `Bearer ${token}` };
+
+const roleLabel = r => r === 'scammer' ? 'Speaker 1' : 'Speaker 2';
+const rolePill  = r => `<span class="${r === 'scammer' ? 'pill-scammer' : 'pill-victim'}">${roleLabel(r)}</span>`;
+
+function logout() { localStorage.clear(); window.location.href = '/'; }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function showPage(page) {
+  ['dashboard','recordings','scripts','volunteers','assignments'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.toggle('hidden', p !== page);
+    document.getElementById(`nav-${p}`).classList.toggle('active', p === page);
+  });
+  const loaders = { dashboard: loadDashboard, recordings: loadRecordings, scripts: loadScripts, volunteers: loadVolunteers, assignments: loadAssignments };
+  loaders[page]?.();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────
+async function loadDashboard() {
+  const res  = await fetch(`${API}/api/admin/stats`, { headers: H });
+  const data = await res.json();
+  if (!res.ok) { logout(); return; }
+
+  const sg = document.getElementById('stat-grid');
+  sg.innerHTML = `
+    <div class="stat-card blue"><div class="stat-label">Volunteers</div><div class="stat-value">${data.volunteers}</div></div>
+    <div class="stat-card"><div class="stat-label">Total recordings</div><div class="stat-value">${data.recordings.total}</div><div class="stat-sub">${data.recordings.pending} pending review</div></div>
+    <div class="stat-card teal"><div class="stat-label">Approved</div><div class="stat-value">${data.recordings.approved}</div></div>
+    <div class="stat-card coral"><div class="stat-label">Rejected</div><div class="stat-value">${data.recordings.rejected}</div></div>
+    <div class="stat-card amber"><div class="stat-label">Scripts</div><div class="stat-value">${data.scripts}</div></div>
+    <div class="stat-card"><div class="stat-label">Assignments</div><div class="stat-value">${data.assignments.total}</div><div class="stat-sub">${data.assignments.completed} completed</div></div>
+  `;
+
+  const cb = document.getElementById('class-balance-body');
+  const total = data.class_balance.vishing + data.class_balance.benign || 1;
+  const vPct  = Math.round(data.class_balance.vishing / total * 100);
+  const bPct  = 100 - vPct;
+  cb.innerHTML = `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+        <span class="text-coral">Vishing: ${data.class_balance.vishing}</span>
+        <span class="text-teal">Benign: ${data.class_balance.benign}</span>
+      </div>
+      <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;display:flex">
+        <div style="width:${vPct}%;background:var(--coral);border-radius:4px 0 0 4px"></div>
+        <div style="width:${bPct}%;background:var(--teal)"></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text3)">Target: 50/50 balance. Currently ${vPct}% vishing / ${bPct}% benign.</div>
+  `;
+
+  // Recent recordings
+  const rres  = await fetch(`${API}/api/admin/recordings?status=pending`, { headers: H });
+  const rdata = await rres.json();
+  const tbody = document.getElementById('recent-tbody');
+  if (!rdata.length) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No pending reviews</td></tr>`; return; }
+  tbody.innerHTML = rdata.slice(0,5).map(r => {
+    const cls = 'badge-pending';
+    return `<tr>
+      <td class="mono" style="font-size:11px;color:var(--text2)">${r.recording_id}</td>
+      <td><span class="badge badge-gray" style="font-size:10px">${(r.script?.category||'').replace('_',' ')}</span></td>
+      <td><span class="badge ${cls}">pending</span></td>
+      <td style="font-size:11px;color:var(--text3)">${new Date(r.submitted_at).toLocaleDateString()}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Recordings ─────────────────────────────────────────────────────
+async function loadRecordings() {
+  const status   = document.getElementById('status-filter')?.value || '';
+  const category = document.getElementById('category-filter-rec')?.value || '';
+  const params   = new URLSearchParams();
+  if (status)   params.set('status',   status);
+  if (category) params.set('category', category);
+  const url = `${API}/api/admin/recordings${params.toString() ? '?' + params.toString() : ''}`;
+  const res    = await fetch(url, { headers: H });
+  const data   = await res.json();
+  const tbody  = document.getElementById('recordings-tbody');
+
+  if (!data.length) { tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:32px">No recordings found</td></tr>`; return; }
+
+  tbody.innerHTML = data.map(r => {
+    const statusCls = { pending:'badge-pending', approved:'badge-approved', rejected:'badge-rejected', reviewed:'badge-reviewed' }[r.status] || 'badge-gray';
+    const tsHtml = r.t_greeting != null
+      ? `<span class="mono" style="font-size:10px;color:var(--text3)">${[r.t_greeting, r.t_setup, r.t_escalation, r.t_harvest].map(t=>t??'—').join(' / ')}</span>${r.timestamps_verified ? ' <span style="color:var(--teal)">✓</span>' : ''}`
+      : '<span style="color:var(--text3)">—</span>';
+    return `<tr>
+      <td class="mono" style="font-size:11px">${r.recording_id}</td>
+      <td style="font-size:12px">${r.script?.title || '—'}</td>
+      <td><span class="badge badge-gray" style="font-size:10px">${(r.script?.category||'').replace('_',' ')}</span></td>
+      <td><span class="badge ${r.script?.call_type === 'vishing' ? 'badge-vishing' : 'badge-benign'}" style="font-size:10px">${r.script?.call_type || '—'}</span></td>
+      <td class="mono" style="font-size:11px;color:var(--text2)">${r.scammer || '—'}</td>
+      <td class="mono" style="font-size:11px;color:var(--text2)">${r.victim || '—'}</td>
+      <td style="font-size:12px">${r.duration_sec ? `${Math.floor(r.duration_sec/60)}:${String(r.duration_sec%60).padStart(2,'0')}` : '—'}</td>
+      <td>${r.audio_quality ? `<span class="badge badge-gray" style="font-size:10px">${r.audio_quality}</span>` : '—'}</td>
+      <td>${tsHtml}</td>
+      <td><span class="badge ${statusCls}">${r.status}</span></td>
+      <td style="font-size:11px;color:var(--text3)">${new Date(r.submitted_at).toLocaleDateString()}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openReview(${r.id},'${r.recording_id}',${JSON.stringify(r).replace(/'/g,"\\'")})" style="font-size:11px">Review</button>
+        ${r.file_name ? `<a href="/api/admin/recordings/${r.id}/download" class="btn btn-ghost btn-sm" style="font-size:11px;text-decoration:none" download>↓</a>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openReview(id, rid, rec) {
+  document.getElementById('review-id').value = id;
+  document.getElementById('review-info').textContent = `Recording: ${rid} · Script: ${rec.script?.title || '—'}`;
+  document.getElementById('review-status').value      = rec.status;
+  document.getElementById('review-quality').value     = rec.audio_quality || '';
+  document.getElementById('review-ts-verified').checked = rec.timestamps_verified;
+  document.getElementById('review-t-greeting').value   = rec.t_greeting   ?? '';
+  document.getElementById('review-t-setup').value      = rec.t_setup      ?? '';
+  document.getElementById('review-t-escalation').value = rec.t_escalation ?? '';
+  document.getElementById('review-t-harvest').value    = rec.t_harvest    ?? '';
+  document.getElementById('review-notes').value        = rec.admin_notes  || '';
+  document.getElementById('review-modal').classList.remove('hidden');
+}
+
+async function submitReview() {
+  const id = document.getElementById('review-id').value;
+  const body = {
+    status:              document.getElementById('review-status').value,
+    timestamps_verified: document.getElementById('review-ts-verified').checked,
+    admin_notes:         document.getElementById('review-notes').value,
+  };
+  const q = document.getElementById('review-quality').value;
+  if (q) body.audio_quality = q;
+  ['t_greeting','t_setup','t_escalation','t_harvest'].forEach(f => {
+    const el = document.getElementById(`review-${f.replace('_','-')}`);
+    if (el.value !== '') body[f] = parseInt(el.value);
+  });
+  const res = await fetch(`${API}/api/admin/recordings/${id}/review`, { method: 'PATCH', headers: H, body: JSON.stringify(body) });
+  if (res.ok) { closeModal('review-modal'); loadRecordings(); }
+}
+
+// ── Scripts ─────────────────────────────────────────────────────────
+let editingScriptId = null;
+const scriptCache = {};
+
+async function loadScripts() {
+  const category = document.getElementById('category-filter-scripts')?.value || '';
+  const url = `${API}/api/admin/scripts${category ? `?category=${category}` : ''}`;
+  const res   = await fetch(url, { headers: H });
+  const data  = await res.json();
+  const tbody = document.getElementById('scripts-tbody');
+  if (!data.length) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">No scripts yet</td></tr>`; return; }
+  data.forEach(s => { scriptCache[s.id] = s; });
+  tbody.innerHTML = data.map(s => {
+    const slotColor = s.assignment_count >= 2 ? 'var(--teal)' : 'var(--text3)';
+    const assigneeText = s.assignees.length > 0
+      ? s.assignees.map(a => `<span class="${a.role === 'scammer' ? 'pill-scammer' : 'pill-victim'}" style="font-size:10px">${a.participant_id} (${roleLabel(a.role)})</span>`).join(' ')
+      : '<span style="color:var(--text3);font-size:12px">—</span>';
+    return `<tr>
+      <td class="mono" style="font-size:12px">${s.script_id}</td>
+      <td>${s.title}</td>
+      <td><span class="badge badge-gray" style="font-size:10px">${s.category.replace('_',' ')}</span></td>
+      <td><span class="badge ${s.call_type === 'vishing' ? 'badge-vishing' : 'badge-benign'}" style="font-size:10px">${s.call_type}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${s.estimated_duration_sec ? `~${Math.round(s.estimated_duration_sec/60)} min` : '—'}</td>
+      <td style="font-size:12px">
+        <span style="color:${slotColor};font-weight:600;margin-right:6px">${s.assignment_count}/2</span>${assigneeText}
+      </td>
+      <td style="font-size:12px">${s.recording_count}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openEditScriptModal(${s.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" style="font-size:11px" onclick="deleteScript(${s.id})">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openScriptModal() {
+  editingScriptId = null;
+  document.getElementById('script-modal-title').textContent = 'Add Script';
+  document.getElementById('script-modal-submit-btn').textContent = 'Add script';
+  document.getElementById('s-id-row').style.display = '';
+  document.getElementById('s-assignees-section').classList.add('hidden');
+  document.getElementById('s-id').value = '';
+  document.getElementById('s-title').value = '';
+  document.getElementById('s-cat').value = 'irs';
+  document.getElementById('s-type').value = 'vishing';
+  document.getElementById('s-desc').value = '';
+  document.getElementById('s-dur').value = '';
+  document.getElementById('s-tg').value = '';
+  document.getElementById('s-ts').value = '';
+  document.getElementById('s-te').value = '';
+  document.getElementById('s-th').value = '';
+  document.getElementById('s-content').value = '';
+  document.getElementById('script-error').style.display = 'none';
+  document.getElementById('script-modal').classList.remove('hidden');
+}
+
+async function openEditScriptModal(scriptId) {
+  const s = scriptCache[scriptId];
+  if (!s) return;
+  editingScriptId = s.id;
+  document.getElementById('script-modal-title').textContent = 'Edit Script';
+  document.getElementById('script-modal-submit-btn').textContent = 'Save changes';
+  document.getElementById('s-id-row').style.display = 'none';
+  document.getElementById('s-id').value = s.script_id;
+  document.getElementById('s-title').value = s.title;
+  document.getElementById('s-cat').value = s.category;
+  document.getElementById('s-type').value = s.call_type;
+  document.getElementById('s-desc').value = s.description || '';
+  document.getElementById('s-dur').value = s.estimated_duration_sec || '';
+  document.getElementById('s-tg').value = s.expected_t_greeting || '';
+  document.getElementById('s-ts').value = s.expected_t_setup || '';
+  document.getElementById('s-te').value = s.expected_t_escalation || '';
+  document.getElementById('s-th').value = s.expected_t_harvest || '';
+  document.getElementById('s-content').value = s.content || '';
+  document.getElementById('script-error').style.display = 'none';
+  document.getElementById('s-assign-error').style.display = 'none';
+  document.getElementById('s-assignees-section').classList.remove('hidden');
+
+  // Load volunteers for the add-volunteer dropdown
+  if (!allVols.length) {
+    const vRes = await fetch(`${API}/api/admin/volunteers`, { headers: H });
+    allVols = await vRes.json();
+  }
+  renderScriptAssignees(s);
+  document.getElementById('script-modal').classList.remove('hidden');
+}
+
+function renderScriptAssignees(s) {
+  const list = document.getElementById('s-assignees-list');
+  const addRow = document.getElementById('s-add-volunteer-row');
+  const assignedIds = new Set(s.assignees.map(a => a.volunteer_id));
+
+  if (s.assignees.length === 0) {
+    list.innerHTML = `<div style="color:var(--text3);font-size:13px;margin-bottom:8px">No volunteers assigned yet.</div>`;
+  } else {
+    list.innerHTML = s.assignees.map(a => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:6px;margin-bottom:6px">
+        <span class="mono" style="font-size:13px;color:var(--blue)">${a.participant_id}</span>
+        <span style="font-size:12px;color:var(--text2)">${a.full_name}</span>
+        ${rolePill(a.role)}
+        ${a.completed ? '<span class="badge badge-approved" style="font-size:10px">completed</span>' : ''}
+        <button class="btn btn-danger btn-sm" style="font-size:11px;margin-left:auto" onclick="removeAssigneeFromScript(${a.id})">Remove</button>
+      </div>`).join('');
+  }
+
+  // Show/hide add form based on capacity
+  const remaining = 2 - s.assignees.length;
+  if (remaining <= 0) {
+    addRow.style.display = 'none';
+  } else {
+    addRow.style.display = 'flex';
+    const volSel = document.getElementById('s-add-vol');
+    volSel.innerHTML = `<option value="">— select volunteer —</option>` +
+      allVols.filter(v => !assignedIds.has(v.id))
+             .map(v => `<option value="${v.id}">${v.participant_id} — ${v.full_name}</option>`).join('');
+  }
+}
+
+async function removeAssigneeFromScript(assignmentId) {
+  if (!confirm('Remove this volunteer from the script?')) return;
+  const res = await fetch(`${API}/api/admin/assignments/${assignmentId}`, { method: 'DELETE', headers: H });
+  if (res.ok) {
+    // Refresh script cache entry and re-render
+    const sRes = await fetch(`${API}/api/admin/scripts`, { headers: H });
+    const scripts = await sRes.json();
+    scripts.forEach(s => { scriptCache[s.id] = s; });
+    const updated = scriptCache[editingScriptId];
+    if (updated) renderScriptAssignees(updated);
+    loadScripts();
+  }
+}
+
+async function addAssigneeToScript() {
+  const err = document.getElementById('s-assign-error');
+  err.style.display = 'none';
+  const volId = parseInt(document.getElementById('s-add-vol').value);
+  const role  = document.getElementById('s-add-role').value;
+  if (!volId) { err.textContent = 'Select a volunteer.'; err.style.display = ''; return; }
+  const res = await fetch(`${API}/api/admin/assignments`, {
+    method: 'POST', headers: H,
+    body: JSON.stringify({ volunteer_id: volId, script_id: editingScriptId, role }),
+  });
+  if (res.ok) {
+    const sRes = await fetch(`${API}/api/admin/scripts`, { headers: H });
+    const scripts = await sRes.json();
+    scripts.forEach(s => { scriptCache[s.id] = s; });
+    const updated = scriptCache[editingScriptId];
+    if (updated) renderScriptAssignees(updated);
+    loadScripts();
+  } else {
+    const d = await res.json();
+    err.textContent = d.detail; err.style.display = '';
+  }
+}
+
+async function saveScript() {
+  const err = document.getElementById('script-error');
+  err.style.display = 'none';
+  const body = {
+    title:       document.getElementById('s-title').value,
+    category:    document.getElementById('s-cat').value,
+    call_type:   document.getElementById('s-type').value,
+    description: document.getElementById('s-desc').value,
+    content:     document.getElementById('s-content').value,
+    estimated_duration_sec: parseInt(document.getElementById('s-dur').value) || null,
+    expected_t_greeting:    parseInt(document.getElementById('s-tg').value)  || null,
+    expected_t_setup:       parseInt(document.getElementById('s-ts').value)  || null,
+    expected_t_escalation:  parseInt(document.getElementById('s-te').value)  || null,
+    expected_t_harvest:     parseInt(document.getElementById('s-th').value)  || null,
+  };
+  if (editingScriptId) {
+    const res = await fetch(`${API}/api/admin/scripts/${editingScriptId}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) });
+    if (res.ok) { closeModal('script-modal'); loadScripts(); }
+    else { const d = await res.json(); err.textContent = d.detail; err.style.display = ''; }
+  } else {
+    body.script_id = document.getElementById('s-id').value;
+    const res = await fetch(`${API}/api/admin/scripts`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+    if (res.ok) { closeModal('script-modal'); loadScripts(); }
+    else { const d = await res.json(); err.textContent = d.detail; err.style.display = ''; }
+  }
+}
+
+async function deleteScript(id) {
+  if (!confirm('Delete this script? This cannot be undone.')) return;
+  await fetch(`${API}/api/admin/scripts/${id}`, { method: 'DELETE', headers: H });
+  loadScripts();
+}
+
+// ── Volunteers ──────────────────────────────────────────────────────
+async function loadVolunteers() {
+  const res   = await fetch(`${API}/api/admin/volunteers`, { headers: H });
+  const data  = await res.json();
+  const tbody = document.getElementById('volunteers-tbody');
+  if (!data.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">No volunteers yet</td></tr>`; return; }
+  tbody.innerHTML = data.map(v => `<tr>
+    <td class="mono" style="font-size:12px;color:var(--blue)">${v.participant_id}</td>
+    <td>${v.full_name}</td>
+    <td style="font-size:12px;color:var(--text2)">${v.email}</td>
+    <td style="text-align:center">${v.has_android ? '✓' : '—'}</td>
+    <td style="text-align:center">${v.consent_signed ? '<span style="color:var(--teal)">✓</span>' : '<span style="color:var(--coral)">✗</span>'}</td>
+    <td style="text-align:center">${v.assignments_total}</td>
+    <td style="text-align:center">${v.assignments_completed}</td>
+    <td><span class="badge ${v.is_active ? 'badge-approved' : 'badge-rejected'}">${v.is_active ? 'active' : 'inactive'}</span></td>
+    <td>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="toggleConsent(${v.id}, ${!v.consent_signed})">
+        ${v.consent_signed ? 'Revoke consent' : 'Mark consented'}
+      </button>
+    </td>
+  </tr>`).join('');
+}
+
+function openVolModal() { document.getElementById('vol-modal').classList.remove('hidden'); }
+
+async function createVolunteer() {
+  const err = document.getElementById('vol-error');
+  err.style.display = 'none';
+  const body = {
+    full_name: document.getElementById('vol-name').value,
+    email:     document.getElementById('vol-email').value,
+    password:  document.getElementById('vol-password').value,
+    has_android: document.getElementById('vol-android').checked,
+    notes:     document.getElementById('vol-notes').value,
+  };
+  const res = await fetch(`${API}/api/admin/volunteers`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+  if (res.ok) { const d = await res.json(); closeModal('vol-modal'); loadVolunteers(); alert(`Volunteer created!\nParticipant ID: ${d.participant_id}`); }
+  else { const d = await res.json(); err.textContent = d.detail; err.style.display = ''; }
+}
+
+async function toggleConsent(id, val) {
+  await fetch(`${API}/api/admin/volunteers/${id}`, { method: 'PATCH', headers: H, body: JSON.stringify({ consent_signed: val }) });
+  loadVolunteers();
+}
+
+// ── Assignments ─────────────────────────────────────────────────────
+let allVols = [], allScripts = [];
+
+async function loadAssignments() {
+  const [aRes, vRes, sRes] = await Promise.all([
+    fetch(`${API}/api/admin/assignments`, { headers: H }),
+    fetch(`${API}/api/admin/volunteers`,  { headers: H }),
+    fetch(`${API}/api/admin/scripts`,     { headers: H }),
+  ]);
+  allVols    = await vRes.json();
+  allScripts = await sRes.json();
+  const data  = await aRes.json();
+  const tbody = document.getElementById('assignments-tbody');
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">No assignments yet. Click "+ Assign script" to create one.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(a => `<tr>
+    <td>
+      <span class="mono" style="font-size:12px;color:var(--blue)">${a.volunteer.participant_id}</span><br>
+      <span style="font-size:11px;color:var(--text3)">${a.volunteer.full_name}</span>
+    </td>
+    <td style="font-size:12px">${a.script.title}<br><span class="mono" style="font-size:10px;color:var(--text3)">${a.script.script_id}</span></td>
+    <td><span class="badge badge-gray" style="font-size:10px">${a.script.category.replace('_',' ')}</span></td>
+    <td>${rolePill(a.role)}</td>
+    <td style="font-size:11px;color:var(--text3)">${new Date(a.assigned_date).toLocaleDateString()}</td>
+    <td><span class="badge ${a.completed ? 'badge-approved' : 'badge-gray'}">${a.completed ? 'completed' : 'pending'}</span></td>
+    <td><button class="btn btn-danger btn-sm" style="font-size:11px" onclick="deleteAssignment(${a.id})">Remove</button></td>
+  </tr>`).join('');
+}
+
+async function deleteAssignment(id) {
+  if (!confirm('Remove this assignment? The volunteer will no longer see this script.')) return;
+  await fetch(`${API}/api/admin/assignments/${id}`, { method: 'DELETE', headers: H });
+  loadAssignments();
+}
+
+async function openAssignModal() {
+  const [vRes, sRes] = await Promise.all([
+    fetch(`${API}/api/admin/volunteers`, { headers: H }),
+    fetch(`${API}/api/admin/scripts`,    { headers: H }),
+  ]);
+  allVols    = await vRes.json();
+  allScripts = await sRes.json();
+
+  const vs = document.getElementById('assign-vol');
+  const ss = document.getElementById('assign-script');
+  vs.innerHTML = `<option value="">— select volunteer —</option>` + allVols.map(v => `<option value="${v.id}">${v.participant_id} — ${v.full_name}</option>`).join('');
+  ss.innerHTML = `<option value="">— select script —</option>`   + allScripts.map(s => {
+    const slots = s.assignment_count || 0;
+    const label = slots >= 2 ? ` [FULL]` : ` [${slots}/2]`;
+    return `<option value="${s.id}" ${slots >= 2 ? 'disabled' : ''}>${s.script_id} — ${s.title}${label}</option>`;
+  }).join('');
+  document.getElementById('assign-capacity').textContent = '';
+  document.getElementById('assign-error').style.display = 'none';
+  document.getElementById('assign-modal').classList.remove('hidden');
+}
+
+function checkScriptCapacity() {
+  const scriptId = document.getElementById('assign-script').value;
+  const cap = document.getElementById('assign-capacity');
+  if (!scriptId) { cap.textContent = ''; return; }
+  const s = allScripts.find(s => String(s.id) === String(scriptId));
+  if (!s) return;
+  const count = s.assignment_count || 0;
+  if (count >= 2) {
+    cap.innerHTML = '<span style="color:var(--coral)">⚠ This script is full (2/2 volunteers assigned)</span>';
+  } else {
+    const existing = (s.assignees || []).map(a => `${a.participant_id} (${a.role})`).join(', ');
+    cap.innerHTML = `<span style="color:var(--text3)">${count}/2 slots filled${existing ? ' — ' + existing : ''}</span>`;
+  }
+}
+
+async function createAssignment() {
+  const err = document.getElementById('assign-error');
+  err.style.display = 'none';
+  const body = {
+    volunteer_id: parseInt(document.getElementById('assign-vol').value),
+    script_id:    parseInt(document.getElementById('assign-script').value),
+    role:         document.getElementById('assign-role').value,
+  };
+  if (!body.volunteer_id || !body.script_id) { err.textContent = 'Select both volunteer and script.'; err.style.display=''; return; }
+  const res = await fetch(`${API}/api/admin/assignments`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+  if (res.ok) { closeModal('assign-modal'); loadAssignments(); loadScripts(); }
+  else { const d = await res.json(); err.textContent = d.detail; err.style.display=''; }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

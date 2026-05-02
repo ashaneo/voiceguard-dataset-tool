@@ -1,0 +1,37 @@
+# Uploaded audio files — never commit recordings
+uploads/*
+!uploads/.gitkeep
+
+# Stored scripts (may contain sensitive data)
+scripts_store/*
+!scripts_store/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Docker volumes (local)
+pg_data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
