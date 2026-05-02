@@ -25,7 +25,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://voiceguard:voiceguard@db:5432/voiceguard
-      SECRET_KEY:   change-this-in-production-use-long-random-string
+      SECRET_KEY:   bc897c2d9d1a1807913d4203ebcca07a4daf31050305cfd68d9982d16f39e494
       UPLOAD_DIR:   /uploads
     volumes:
       - ./uploads:/uploads
