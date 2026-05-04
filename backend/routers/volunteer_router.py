@@ -17,6 +17,15 @@ def my_assignments(db: Session = Depends(get_db), user: models.User = Depends(ge
     result = []
     for a in assignments:
         rec = a.recording
+        partner_a = db.query(models.Assignment).filter(
+            models.Assignment.script_id == a.script_id,
+            models.Assignment.volunteer_id != user.id,
+        ).first()
+        partner = {
+            "full_name": partner_a.volunteer.full_name,
+            "participant_id": partner_a.volunteer.participant_id,
+            "role": partner_a.role.value,
+        } if partner_a else None
         result.append({
             "id": a.id,
             "script": {
@@ -36,6 +45,7 @@ def my_assignments(db: Session = Depends(get_db), user: models.User = Depends(ge
             "role": a.role,
             "assigned_date": a.assigned_date,
             "completed": a.completed,
+            "partner": partner,
             "recording": {
                 "recording_id": rec.recording_id,
                 "status": rec.status,
@@ -136,6 +146,16 @@ async def submit_recording(
     )
     db.add(recording); db.commit(); db.refresh(recording)
     return {"ok": True, "recording_id": recording_id, "message": "Recording submitted successfully"}
+
+# ── Consent acknowledgement ────────────────────────────────────────
+@router.post("/consent/acknowledge")
+def acknowledge_consent(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    if user.consent_signed:
+        return {"ok": True, "already_signed": True}
+    user.consent_signed = True
+    user.consent_date = datetime.utcnow()
+    db.commit()
+    return {"ok": True, "already_signed": False}
 
 # ── Change password ────────────────────────────────────────────────
 @router.post("/change-password")

@@ -26,6 +26,12 @@
       <div class="nav-item" onclick="showPage('guide')" id="nav-guide">
         <span class="icon">📖</span> Recording Guide
       </div>
+      <div class="nav-item" onclick="showPage('consent')" id="nav-consent">
+        <span class="icon">📝</span> Consent Agreement
+      </div>
+      <div class="nav-item" onclick="showPage('about')" id="nav-about">
+        <span class="icon">🔬</span> About the Research
+      </div>
       <div class="nav-section" style="margin-top:12px">Account</div>
       <div class="nav-item" onclick="showPage('account')" id="nav-account">
         <span class="icon">🔑</span> Change Password
@@ -146,6 +152,155 @@
         </div></div>
       </div>
     </div>
+    <!-- Consent Agreement page -->
+    <div id="page-consent" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">Consent Agreement</div><div class="page-sub">Research participation consent form</div></div>
+      </div>
+      <div class="content">
+        <div id="consent-status-banner" class="alert alert-warn hidden" style="margin-bottom:20px">
+          ⚠️ Your consent has not yet been confirmed by the research team. Please review the agreement below and contact the research team to complete the process.
+        </div>
+        <div id="consent-signed-banner" class="alert alert-success hidden" style="margin-bottom:20px">
+          ✓ Your consent has been confirmed and is on file with the research team.
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Research Participation Consent Form</span></div>
+          <div class="panel-body" style="font-size:13px;line-height:1.9;color:var(--text2)">
+            <p style="margin-bottom:14px"><strong style="color:var(--text)">Study title:</strong> VoiceGuard — A Voice Phishing (Vishing) Detection Dataset</p>
+            <p style="margin-bottom:14px"><strong style="color:var(--text)">Principal investigators:</strong> VoiceGuard Research Team</p>
+
+            <hr class="divider">
+            <h3 style="font-size:14px;color:var(--text);margin-bottom:10px">Purpose of the Study</h3>
+            <p style="margin-bottom:14px">
+              You are being asked to participate in a research project that aims to create a labelled audio dataset of voice phishing (vishing) and benign phone calls. This dataset will be used to develop and evaluate machine-learning models capable of detecting fraudulent phone calls in real time, helping protect individuals from scam and fraud.
+            </p>
+
+            <hr class="divider">
+            <h3 style="font-size:14px;color:var(--text);margin-bottom:10px">What You Will Be Asked to Do</h3>
+            <ul style="padding-left:18px;margin-bottom:14px">
+              <li style="margin-bottom:6px">Read and follow scripted phone-call scenarios assigned to you by the research team.</li>
+              <li style="margin-bottom:6px">Coordinate with a partner volunteer to record the call using a call-recording application (e.g., Cube ACR on Android).</li>
+              <li style="margin-bottom:6px">Upload the recording through this portal along with timing and quality metadata.</li>
+              <li style="margin-bottom:6px">Each recording session is expected to take approximately 5–15 minutes.</li>
+            </ul>
+
+            <hr class="divider">
+            <h3 style="font-size:14px;color:var(--text);margin-bottom:10px">Risks and Discomforts</h3>
+            <p style="margin-bottom:14px">
+              The scenarios are scripted and role-played. There are no real financial transactions or personal data disclosures involved. The primary risk is mild discomfort from performing scam-related roleplay. You may withdraw at any time without penalty.
+            </p>
+
+            <hr class="divider">
+            <h3 style="font-size:14px;color:var(--text);margin-bottom:10px">Confidentiality and Data Use</h3>
+            <ul style="padding-left:18px;margin-bottom:14px">
+              <li style="margin-bottom:6px">Recordings will be stored securely and accessible only to the research team.</li>
+              <li style="margin-bottom:6px">You will be identified only by your participant ID (e.g., P001) — your name will not appear in any published dataset.</li>
+              <li style="margin-bottom:6px">Audio data may be released publicly as part of an anonymised research dataset for academic use.</li>
+              <li style="margin-bottom:6px">Metadata (timestamps, quality labels) may be published alongside the audio.</li>
+            </ul>
+
+            <hr class="divider">
+            <h3 style="font-size:14px;color:var(--text);margin-bottom:10px">Voluntary Participation</h3>
+            <p style="margin-bottom:14px">
+              Your participation is entirely voluntary. You may withdraw at any time by contacting the research team. Withdrawal will not result in any penalty or loss of benefits to which you are otherwise entitled.
+            </p>
+
+            <hr class="divider">
+            <h3 style="font-size:14px;color:var(--text);margin-bottom:10px">Contact</h3>
+            <p style="margin-bottom:14px">
+              If you have questions about this research, please contact the research team. For concerns about your rights as a research participant, contact your institution's research ethics board.
+            </p>
+
+            <hr class="divider">
+            <div id="consent-agree-section">
+              <div class="checkbox-row" style="margin-bottom:16px">
+                <input type="checkbox" id="consent-checkbox" onchange="toggleConsentBtn()">
+                <label for="consent-checkbox" style="font-size:13px;color:var(--text)">I have read and understood the consent agreement above, and I agree to participate in this research study.</label>
+              </div>
+              <button id="consent-agree-btn" class="btn btn-primary" onclick="submitConsent()" disabled style="opacity:.5">
+                I Agree &amp; Understand
+              </button>
+              <div id="consent-agree-error" class="alert" style="background:#1E0E0A;border-color:#E05C4A40;color:var(--coral);display:none;margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- About the Research page -->
+    <div id="page-about" class="hidden">
+      <div class="topbar">
+        <div><div class="page-title">About the Research</div><div class="page-sub">VoiceGuard dataset collection project</div></div>
+      </div>
+      <div class="content">
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-header"><span class="panel-title">Project Overview</span></div>
+          <div class="panel-body" style="font-size:13px;line-height:1.9;color:var(--text2)">
+            <p style="margin-bottom:14px">
+              <strong style="color:var(--text)">VoiceGuard</strong> is a research project focused on building the first large-scale, richly-labelled dataset of voice phishing (vishing) calls. Voice phishing is a growing form of social-engineering fraud where attackers impersonate banks, government agencies, or tech-support services over the phone to steal money or personal information.
+            </p>
+            <p>
+              Existing fraud-detection systems rely primarily on text (SMS, email) or metadata (call frequency, spoofed numbers). VoiceGuard targets the acoustic and linguistic patterns in the call audio itself, enabling real-time detection at the network or device level.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-header"><span class="panel-title">Why We Need Volunteers</span></div>
+          <div class="panel-body" style="font-size:13px;line-height:1.9;color:var(--text2)">
+            <p style="margin-bottom:14px">
+              Machine-learning models for audio classification require large quantities of labelled audio examples. Real vishing recordings are rare, legally sensitive, and ethically problematic to collect. Instead, we use trained volunteers to perform scripted role-plays that closely mirror real attacks across multiple categories:
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div class="stat-card blue"><div class="stat-label">IRS / Tax Scam</div><div style="font-size:12px;color:var(--text2);margin-top:6px">Impersonating tax authorities</div></div>
+              <div class="stat-card amber"><div class="stat-label">Bank Fraud Alert</div><div style="font-size:12px;color:var(--text2);margin-top:6px">Fake account security calls</div></div>
+              <div class="stat-card coral"><div class="stat-label">Tech Support</div><div style="font-size:12px;color:var(--text2);margin-top:6px">Remote access / virus scam</div></div>
+              <div class="stat-card teal"><div class="stat-label">Benign Calls</div><div style="font-size:12px;color:var(--text2);margin-top:6px">Normal calls for contrast</div></div>
+            </div>
+            <p>Each call is recorded, timestamped by phase (greeting → setup → escalation → harvest), and reviewed by the research team before being added to the dataset.</p>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-header"><span class="panel-title">Call Structure</span></div>
+          <div class="panel-body" style="font-size:13px;line-height:1.9;color:var(--text2)">
+            <p style="margin-bottom:12px">Vishing calls in the dataset follow a four-phase structure that mirrors real-world attack patterns:</p>
+            <div class="timestamp-grid" style="margin-bottom:14px">
+              <div>
+                <div style="font-size:11px;color:var(--teal);font-weight:600;margin-bottom:4px">GREETING</div>
+                <div>The caller establishes rapport and introduces themselves as an authority figure.</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--amber);font-weight:600;margin-bottom:4px">SETUP</div>
+                <div>A problem is introduced — a tax debt, a compromised account, a virus detected.</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:#E07A30;font-weight:600;margin-bottom:4px">ESCALATION</div>
+                <div>Urgency and pressure are applied — threats of arrest, account closure, or legal action.</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--coral);font-weight:600;margin-bottom:4px">HARVEST</div>
+                <div>The caller requests payment, gift cards, remote access, or personal information.</div>
+              </div>
+            </div>
+            <p>These phase timestamps are what you provide when submitting a recording — they allow the dataset to be used for phase-level classification, not just binary fraud detection.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Your Contribution</span></div>
+          <div class="panel-body" style="font-size:13px;line-height:1.9;color:var(--text2)">
+            <p style="margin-bottom:14px">
+              Each recording you submit directly expands a dataset that researchers will use to train and benchmark vishing-detection models. High-quality recordings with accurate timestamps are especially valuable.
+            </p>
+            <p>
+              The resulting dataset, once complete, will be made available to the academic research community (under appropriate ethical agreements) to advance the field of phone fraud detection.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -251,10 +406,13 @@
   <div class="modal modal-lg">
     <div class="modal-header">
       <span class="modal-title" id="script-modal-title">Script</span>
-      <button class="modal-close" onclick="document.getElementById('script-modal').classList.add('hidden')">✕</button>
+      <button class="modal-close" onclick="closeScriptModal()">✕</button>
     </div>
     <div class="modal-body">
       <div id="script-modal-body" style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text2)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeScriptModal()">Close</button>
     </div>
   </div>
 </div>
@@ -279,11 +437,15 @@ function logout() {
 }
 
 function showPage(page) {
-  ['assignments','recordings','guide','account'].forEach(p => {
+  ['assignments','recordings','guide','consent','about','account'].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle('hidden', p !== page);
     document.getElementById(`nav-${p}`).classList.toggle('active', p === page);
   });
   if (page === 'recordings') loadRecordings();
+}
+
+function closeScriptModal() {
+  document.getElementById('script-modal').classList.add('hidden');
 }
 
 // ── Assignments ──────────────────────────────────────────────────
@@ -294,7 +456,7 @@ async function loadAssignments() {
   if (!res.ok) { logout(); return; }
 
   const me = await (await fetch(`${API}/api/auth/me`, { headers })).json();
-  if (!me.consent_signed) document.getElementById('consent-banner').classList.remove('hidden');
+  setConsentUI(me.consent_signed);
 
   const container = document.getElementById('assignments-list');
   if (!data.length) {
@@ -338,6 +500,18 @@ function buildScriptCard(a) {
 
   const roleHtml = `<span class="${a.role === 'scammer' ? 'pill-scammer' : 'pill-victim'}">${roleLabel(a.role)}</span>`;
 
+  const partnerRole = a.partner ? roleLabel(a.partner.role) : null;
+  const partnerHtml = a.partner
+    ? `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)">
+        <span style="font-size:12px;color:var(--text3)">Call partner:</span>
+        <span style="font-size:13px;font-weight:500;color:var(--text)">${a.partner.full_name}</span>
+        <span class="mono" style="font-size:11px;color:var(--text3)">${a.partner.participant_id}</span>
+        <span class="${a.partner.role === 'scammer' ? 'pill-scammer' : 'pill-victim'}" style="margin-left:4px">${partnerRole}</span>
+      </div>`
+    : `<div style="margin-top:10px;padding:9px 12px;background:var(--bg);border:1px dashed var(--border);border-radius:var(--r);font-size:12px;color:var(--text3)">
+        No partner assigned yet — the research team will assign your call partner.
+      </div>`;
+
   card.innerHTML = `
     <div class="script-card-header">
       <div>
@@ -352,6 +526,7 @@ function buildScriptCard(a) {
         ${roleHtml} ${statusHtml}
       </div>
     </div>
+    ${partnerHtml}
     ${isVishing ? `<div class="script-phase-bar">
       <span class="phase-greeting" style="flex:2" title="Greeting"></span>
       <span class="phase-setup" style="flex:2" title="Setup"></span>
@@ -490,6 +665,42 @@ async function changePassword() {
   } else {
     const d = await res.json();
     err.textContent = d.detail || 'Failed to change password.'; err.style.display = '';
+  }
+}
+
+// ── Consent ───────────────────────────────────────────────────────
+function setConsentUI(signed) {
+  if (signed) {
+    document.getElementById('consent-signed-banner').classList.remove('hidden');
+    document.getElementById('consent-agree-section').classList.add('hidden');
+  } else {
+    document.getElementById('consent-banner').classList.remove('hidden');
+    document.getElementById('consent-status-banner').classList.remove('hidden');
+  }
+}
+
+function toggleConsentBtn() {
+  const checked = document.getElementById('consent-checkbox').checked;
+  const btn = document.getElementById('consent-agree-btn');
+  btn.disabled = !checked;
+  btn.style.opacity = checked ? '1' : '.5';
+}
+
+async function submitConsent() {
+  const btn = document.getElementById('consent-agree-btn');
+  const err = document.getElementById('consent-agree-error');
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving...';
+
+  try {
+    const res = await fetch(`${API}/api/volunteer/consent/acknowledge`, { method: 'POST', headers });
+    if (!res.ok) throw new Error('Failed to record consent. Please try again.');
+    setConsentUI(true);
+    document.getElementById('consent-banner').classList.add('hidden');
+  } catch (ex) {
+    err.textContent = ex.message; err.style.display = '';
+    btn.disabled = false; btn.innerHTML = 'I Agree &amp; Understand';
   }
 }
 
