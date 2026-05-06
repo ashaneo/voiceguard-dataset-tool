@@ -1,13 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal
 import models
 from auth import hash_password
 from routers import auth_router, admin_router, volunteer_router
-import os
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -48,17 +45,3 @@ def seed_admin():
     finally:
         db.close()
 
-# Serve frontend
-app.mount("/static", StaticFiles(directory="/frontend/static"), name="static")
-
-@app.get("/")
-def serve_index():
-    return FileResponse("/frontend/index.html")
-
-@app.get("/volunteer")
-def serve_volunteer():
-    return FileResponse("/frontend/volunteer.html")
-
-@app.get("/admin")
-def serve_admin():
-    return FileResponse("/frontend/admin.html")
