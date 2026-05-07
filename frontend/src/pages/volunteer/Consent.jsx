@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { apiFetch } from '../../api'
 
-export default function Consent({ me, onConsentUpdate }) {
+export default function Consent() {
+  const { me, fetchMe: onConsentUpdate } = useOutletContext()
   const [checked, setChecked] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')

@@ -1,11 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Assignments from './Assignments'
-import Recordings from './Recordings'
-import Guide from './Guide'
-import Consent from './Consent'
-import About from './About'
-import Account from './Account'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import IncomingCallModal from './IncomingCallModal'
 import { apiGet, logout } from '../../api'
 
@@ -25,7 +19,6 @@ const NAV = [
 ]
 
 export default function VolunteerPortal() {
-  const [page, setPage] = useState('assignments')
   const [me, setMe] = useState(null)
   const [incomingCall, setIncomingCall] = useState(null)
   const presenceWsRef = useRef(null)
@@ -95,9 +88,13 @@ export default function VolunteerPortal() {
             <div key={section}>
               <div className="nav-section" style={{ marginTop: section !== 'My Work' ? 12 : 0 }}>{section}</div>
               {items.map(({ id, icon, label }) => (
-                <div key={id} className={`nav-item${page === id ? ' active' : ''}`} onClick={() => setPage(id)}>
+                <NavLink
+                  key={id}
+                  to={id}
+                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                >
                   <span className="icon">{icon}</span> {label}
-                </div>
+                </NavLink>
               ))}
             </div>
           ))}
@@ -113,12 +110,7 @@ export default function VolunteerPortal() {
       </aside>
 
       <div className="main">
-        {page === 'assignments' && <Assignments me={me} onConsentUpdate={fetchMe} />}
-        {page === 'recordings'  && <Recordings />}
-        {page === 'guide'       && <Guide />}
-        {page === 'consent'     && <Consent me={me} onConsentUpdate={fetchMe} />}
-        {page === 'about'       && <About />}
-        {page === 'account'     && <Account />}
+        <Outlet context={{ me, fetchMe }} />
       </div>
 
       <IncomingCallModal call={incomingCall} onAccept={acceptCall} onReject={rejectCall} />

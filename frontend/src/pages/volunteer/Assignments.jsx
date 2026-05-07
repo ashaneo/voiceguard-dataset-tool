@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { apiGet, apiFetch, authHdr } from '../../api'
 
 const roleLabel = r => r === 'scammer' ? 'Speaker 1' : 'Speaker 2'
 const STATUS_CLS = { pending: 'badge-pending', reviewed: 'badge-reviewed', rejected: 'badge-rejected' }
 
-export default function Assignments({ me }) {
+export default function Assignments() {
+  const { me } = useOutletContext()
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading]         = useState(true)
   const [scriptModal, setScriptModal] = useState(null)

@@ -1,10 +1,5 @@
-import { useState } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
 import { logout } from '../../api'
-import Dashboard from './Dashboard'
-import AdminRecordings from './AdminRecordings'
-import Scripts from './Scripts'
-import Volunteers from './Volunteers'
-import AdminAssignments from './AdminAssignments'
 
 const NAV = [
   { section: 'Overview', items: [{ id: 'dashboard',   icon: '⬛', label: 'Dashboard' }] },
@@ -19,8 +14,6 @@ const NAV = [
 ]
 
 export default function AdminPortal() {
-  const [page, setPage] = useState('dashboard')
-
   return (
     <div className="app">
       <aside className="sidebar">
@@ -33,9 +26,13 @@ export default function AdminPortal() {
             <div key={section}>
               <div className="nav-section" style={{ marginTop: section !== 'Overview' ? 8 : 0 }}>{section}</div>
               {items.map(({ id, icon, label }) => (
-                <div key={id} className={`nav-item${page === id ? ' active' : ''}`} onClick={() => setPage(id)}>
+                <NavLink
+                  key={id}
+                  to={id}
+                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                >
                   <span className="icon">{icon}</span> {label}
-                </div>
+                </NavLink>
               ))}
             </div>
           ))}
@@ -51,11 +48,7 @@ export default function AdminPortal() {
       </aside>
 
       <div className="main">
-        {page === 'dashboard'   && <Dashboard />}
-        {page === 'recordings'  && <AdminRecordings />}
-        {page === 'scripts'     && <Scripts />}
-        {page === 'volunteers'  && <Volunteers />}
-        {page === 'assignments' && <AdminAssignments />}
+        <Outlet />
       </div>
     </div>
   )
