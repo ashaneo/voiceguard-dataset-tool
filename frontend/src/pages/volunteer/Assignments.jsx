@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { apiGet, apiFetch, authHdr } from '../../api'
 
 const roleLabel = r => r === 'scammer' ? 'Speaker 1' : 'Speaker 2'
@@ -9,6 +10,7 @@ export default function Assignments({ me }) {
   const [loading, setLoading]         = useState(true)
   const [scriptModal, setScriptModal] = useState(null)
   const [submitModal, setSubmitModal] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => { load() }, [])
 
@@ -52,7 +54,7 @@ export default function Assignments({ me }) {
           <>
             <div className="section-divider">Pending ({pending.length})</div>
             {pending.map(a => (
-              <ScriptCard key={a.id} a={a} onView={viewScript} onSubmit={setSubmitModal} />
+              <ScriptCard key={a.id} a={a} onView={viewScript} onSubmit={setSubmitModal} onCall={(assignmentId, scriptId) => navigate(`/call/script-${scriptId}?aid=${assignmentId}`)} />
             ))}
           </>
         )}
@@ -60,7 +62,7 @@ export default function Assignments({ me }) {
           <>
             <div className="section-divider" style={{ marginTop: 28 }}>Completed ({completed.length})</div>
             {completed.map(a => (
-              <ScriptCard key={a.id} a={a} onView={viewScript} onSubmit={setSubmitModal} />
+              <ScriptCard key={a.id} a={a} onView={viewScript} onSubmit={setSubmitModal} onCall={(assignmentId, scriptId) => navigate(`/call/script-${scriptId}?aid=${assignmentId}`)} />
             ))}
           </>
         )}
@@ -96,7 +98,7 @@ export default function Assignments({ me }) {
   )
 }
 
-function ScriptCard({ a, onView, onSubmit }) {
+function ScriptCard({ a, onView, onSubmit, onCall }) {
   const s = a.script
   const rec = a.recording
   const isVishing = s.call_type === 'vishing'
@@ -160,6 +162,12 @@ function ScriptCard({ a, onView, onSubmit }) {
         <div style={{ display: 'flex', gap: 8 }}>
           {s.has_content && (
             <button className="btn btn-ghost btn-sm" onClick={() => onView(s.id, s.title)}>📄 View script</button>
+          )}
+          {a.partner && !a.completed && (
+            <button className="btn btn-sm" style={{ background: 'var(--teal)', color: '#fff', border: 'none' }}
+              onClick={() => onCall(a.id, s.id)}>
+              📞 Join call
+            </button>
           )}
           {!rec && !a.completed && (
             <button className="btn btn-primary btn-sm" onClick={() => onSubmit({ assignmentId: a.id, title: s.title, callType: s.call_type })}>

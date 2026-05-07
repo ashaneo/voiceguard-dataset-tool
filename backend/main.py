@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import engine, SessionLocal
 import models
 from auth import hash_password
-from routers import auth_router, admin_router, volunteer_router
+from routers import auth_router, admin_router, volunteer_router, call_router
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -22,6 +22,7 @@ app.add_middleware(
 app.include_router(auth_router.router,      prefix="/api/auth",      tags=["auth"])
 app.include_router(admin_router.router,     prefix="/api/admin",     tags=["admin"])
 app.include_router(volunteer_router.router, prefix="/api/volunteer", tags=["volunteer"])
+app.include_router(call_router.router,      prefix="/api/call",      tags=["call"])
 
 # Seed default admin on startup
 @app.on_event("startup")
