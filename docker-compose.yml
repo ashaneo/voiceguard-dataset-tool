@@ -21,9 +21,10 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      SECRET_KEY:   ${SECRET_KEY}
-      UPLOAD_DIR:   ${UPLOAD_DIR}
+      DATABASE_URL:    ${DATABASE_URL}
+      SECRET_KEY:      ${SECRET_KEY}
+      UPLOAD_DIR:      ${UPLOAD_DIR}
+      BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN}
     volumes:
       - ./uploads:/uploads
       - ./scripts_store:/scripts_store
