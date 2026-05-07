@@ -12,6 +12,7 @@ export default function Assignments({ me }) {
   const [submitModal, setSubmitModal] = useState(null)
   const navigate = useNavigate()
 
+  
   useEffect(() => {
     load()
     // Re-fetch when the tab/window regains focus (covers returning from call room)
