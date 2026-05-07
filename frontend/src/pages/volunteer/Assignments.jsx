@@ -15,9 +15,9 @@ export default function Assignments({ me }) {
   
   useEffect(() => {
     load()
-    // Re-fetch when the tab/window regains focus (covers returning from call room)
-    window.addEventListener('focus', load)
-    return () => window.removeEventListener('focus', load)
+    const onPageShow = e => { if (e.persisted) load() }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
   }, [])
 
   async function load() {

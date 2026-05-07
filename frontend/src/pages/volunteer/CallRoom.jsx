@@ -32,18 +32,16 @@ export default function CallRoom() {
   const assignmentId       = searchParams.get('aid')
   const scriptId           = roomId?.split('-')[1]
 
-  // UI state
   const [status, setStatus]       = useState('connecting')
   const [isMuted, setIsMuted]     = useState(false)
   const [elapsed, setElapsed]     = useState(0)
   const [roomInfo, setRoomInfo]   = useState(null)
-  const [script, setScript]       = useState(undefined) // undefined=loading, null=failed/no-content
+  const [script, setScript]       = useState(undefined) // undefined=loading, null=failed/none
   const [errorMsg, setErrorMsg]   = useState('')
   const [recordingBlob, setRecordingBlob] = useState(null)
   const [recordingUrl,  setRecordingUrl]  = useState(null)
   const [showSubmit,    setShowSubmit]    = useState(false)
 
-  // Refs — stable across renders, no stale-closure issues
   const wsRef          = useRef(null)
   const pcRef          = useRef(null)
   const localStreamRef = useRef(null)
@@ -64,14 +62,13 @@ export default function CallRoom() {
         apiGet(`/api/volunteer/scripts/${scriptId}`),
       ]).then(([room, sc]) => {
         if (room) setRoomInfo(room)
-        setScript(sc ?? null) // null = fetch returned nothing
+        setScript(sc ?? null)
       })
     }
     connectWS()
     return doCleanup
   }, [])
 
-  // Create/revoke object URL whenever blob is set
   useEffect(() => {
     if (!recordingBlob) return
     const url = URL.createObjectURL(recordingBlob)
@@ -143,7 +140,6 @@ export default function CallRoom() {
       return
     }
 
-    // Start recording as soon as we have the local mic stream
     startRecorder()
 
     const pc = new RTCPeerConnection(STUN_CONFIG)
@@ -151,9 +147,7 @@ export default function CallRoom() {
     localStreamRef.current.getTracks().forEach(t => pc.addTrack(t, localStreamRef.current))
 
     pc.ontrack = (e) => {
-      // Play remote audio
       if (remoteAudioRef.current) remoteAudioRef.current.srcObject = e.streams[0]
-      // Mix remote stream into the recording
       if (audioCtxRef.current && destRef.current) {
         audioCtxRef.current.createMediaStreamSource(e.streams[0]).connect(destRef.current)
       }
@@ -179,7 +173,7 @@ export default function CallRoom() {
   // ── Recording ───────────────────────────────────────────────────────────────
   function startRecorder() {
     try {
-      const mime     = bestMime()
+      const mime      = bestMime()
       mimeRef.current = mime
 
       const audioCtx = new AudioContext()
@@ -187,7 +181,6 @@ export default function CallRoom() {
       audioCtxRef.current = audioCtx
       destRef.current     = dest
 
-      // Local mic into the mix
       audioCtx.createMediaStreamSource(localStreamRef.current).connect(dest)
 
       const recorder = new MediaRecorder(dest.stream, mime ? { mimeType: mime } : undefined)
@@ -200,7 +193,7 @@ export default function CallRoom() {
         setRecordingBlob(new Blob(chunksRef.current, { type }))
       }
 
-      recorder.start(1000) // collect a chunk every second
+      recorder.start(1000)
     } catch (err) {
       console.warn('MediaRecorder setup failed:', err)
     }
@@ -246,16 +239,22 @@ export default function CallRoom() {
   function endCall() {
     doCleanup()
     setStatus('ended')
-    // stopRecorder already called inside doCleanup; onstop will fire and set blob
   }
 
-  function goBack() { doCleanup(); navigate('/volunteer') }
+  function goBack() {
+    if (status === 'in-call') {
+      endCall() // stay on page so the recording can be saved/submitted
+      return
+    }
+    doCleanup()
+    navigate('/volunteer')
+  }
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{
         padding: '12px 24px', background: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
@@ -274,125 +273,45 @@ export default function CallRoom() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Recording indicator */}
-        {status === 'in-call' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 8 }}>
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%', background: 'var(--coral)',
-              boxShadow: '0 0 6px var(--coral)',
-              animation: 'pulse 1.4s ease-in-out infinite',
-            }} />
-            <span style={{ fontSize: 11, color: 'var(--coral)', fontFamily: 'var(--mono)', letterSpacing: 1 }}>
-              REC
-            </span>
+      {/* Full-width script — extra bottom padding so card never covers text */}
+      <div style={{ flex: 1, padding: '24px 40px 140px', overflowY: 'auto' }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>
+          Script
+        </div>
+        {script?.content ? (
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 2, color: 'var(--text2)', fontFamily: 'var(--sans)', margin: 0 }}>
+            {script.content}
+          </pre>
+        ) : (
+          <div style={{ color: 'var(--text3)', fontSize: 13 }}>
+            {script === undefined ? 'Loading script…' : 'No script content available.'}
           </div>
         )}
-
-        <div style={{
-          fontFamily: 'var(--mono)', fontSize: 22, letterSpacing: 2,
-          color: status === 'in-call' ? 'var(--teal)' : 'var(--text3)',
-        }}>
-          {fmt(elapsed)}
-        </div>
       </div>
 
-      {/* ── Body ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-
-        {/* Script panel */}
-        <div style={{ flex: 1, padding: '24px 28px', overflowY: 'auto', borderRight: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>
-            Script
-          </div>
-          {script?.content ? (
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 2, color: 'var(--text2)', fontFamily: 'var(--sans)' }}>
-              {script.content}
-            </pre>
-          ) : (
-            <div style={{ color: 'var(--text3)', fontSize: 13 }}>
-              {script === undefined ? 'Loading script…' : 'No script content available.'}
-            </div>
-          )}
-        </div>
-
-        {/* Controls panel */}
-        <div style={{
-          width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: 24, padding: 32,
-          overflowY: 'auto',
-        }}>
-
-          {status === 'connecting' && (
-            <>
-              <div style={circleStyle()}>⏳</div>
-              <div style={{ fontSize: 13, color: 'var(--text3)' }}>Connecting…</div>
-            </>
-          )}
-
-          {status === 'waiting' && (
-            <>
-              <div style={circleStyle({ border: '2px dashed var(--border2)' })}>⏳</div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>Waiting for partner</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                  The call will start automatically when your partner joins.
-                </div>
-              </div>
-              <button className="btn btn-ghost btn-sm" onClick={goBack}>Cancel</button>
-            </>
-          )}
-
-          {status === 'in-call' && (
-            <>
-              <div style={circleStyle({ background: '#0EA98A18', border: '2px solid var(--teal)' })}>📞</div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 600, color: 'var(--teal)', marginBottom: 4 }}>Call in progress</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                  {roomInfo?.partner?.full_name ?? 'Partner connected'}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <button onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'} style={btnCircle(isMuted ? 'var(--coral)' : 'var(--surface2)', 52)}>
-                  {isMuted ? '🔇' : '🎤'}
-                </button>
-                <button onClick={endCall} title="End call" style={btnCircle('var(--coral)', 60)}>
-                  📵
-                </button>
-              </div>
-              {isMuted && <div style={{ fontSize: 11, color: 'var(--coral)' }}>Microphone muted</div>}
-            </>
-          )}
-
-          {status === 'ended' && (
-            <EndedPanel
-              elapsed={elapsed}
-              recordingUrl={recordingUrl}
-              recordingBlob={recordingBlob}
-              mimeExt={mimeExt(mimeRef.current)}
-              roomId={roomId}
-              onSubmit={() => setShowSubmit(true)}
-              onBack={goBack}
-            />
-          )}
-
-          {status === 'error' && (
-            <>
-              <div style={circleStyle({ background: '#E05C4A18', border: '2px solid var(--coral)' })}>⚠️</div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ color: 'var(--coral)', fontWeight: 600, marginBottom: 8 }}>Connection error</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>{errorMsg}</div>
-              </div>
-              <button className="btn btn-ghost btn-sm" onClick={goBack}>Go back</button>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Floating call card */}
+      <CallCard
+        status={status}
+        isMuted={isMuted}
+        elapsed={elapsed}
+        recordingUrl={recordingUrl}
+        recordingBlob={recordingBlob}
+        mimeExt={mimeExt(mimeRef.current)}
+        roomId={roomId}
+        onMute={toggleMute}
+        onEnd={endCall}
+        onCancel={goBack}
+        onSubmit={() => setShowSubmit(true)}
+        onBack={goBack}
+        errorMsg={errorMsg}
+      />
 
       {/* Remote audio (hidden) */}
       <audio ref={remoteAudioRef} autoPlay />
 
-      {/* Inline submit modal */}
+      {/* Submit modal */}
       {showSubmit && recordingBlob && (
         <SubmitModal
           assignmentId={assignmentId}
@@ -406,7 +325,6 @@ export default function CallRoom() {
         />
       )}
 
-      {/* Pulse animation for REC indicator */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
@@ -417,79 +335,155 @@ export default function CallRoom() {
   )
 }
 
-// ── Style helpers ─────────────────────────────────────────────────────────────
-function circleStyle(extra = {}) {
-  return {
-    width: 64, height: 64, borderRadius: '50%',
-    background: 'var(--surface2)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 26, flexShrink: 0,
-    ...extra,
-  }
+// ── Floating call card ────────────────────────────────────────────────────────
+function CallCard({ status, isMuted, elapsed, recordingUrl, recordingBlob, mimeExt, roomId, onMute, onEnd, onCancel, onSubmit, onBack, errorMsg }) {
+  const filename = `voiceguard_${roomId}_${new Date().toISOString().slice(0, 10)}${mimeExt}`
+
+  const borderColor =
+    status === 'in-call' ? 'var(--teal)' :
+    status === 'error'   ? 'var(--coral)' :
+    'var(--border2)'
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 24, right: 24, width: 300,
+      background: 'var(--surface)', border: `1px solid ${borderColor}`,
+      borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', zIndex: 100,
+      overflow: 'hidden',
+    }}>
+      {/* Card header row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px',
+        background: status === 'in-call' ? 'rgba(14,169,138,0.08)' : 'var(--surface2)',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {status === 'in-call' && (
+            <>
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', background: 'var(--coral)',
+                boxShadow: '0 0 6px var(--coral)', animation: 'pulse 1.4s ease-in-out infinite',
+              }} />
+              <span style={{ fontSize: 11, color: 'var(--coral)', fontFamily: 'var(--mono)', letterSpacing: 1 }}>REC</span>
+            </>
+          )}
+          {status === 'waiting'    && <span style={{ fontSize: 12, color: 'var(--text3)' }}>Waiting for partner</span>}
+          {status === 'ended'      && <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>Call ended</span>}
+          {status === 'error'      && <span style={{ fontSize: 12, color: 'var(--coral)', fontWeight: 600 }}>Connection error</span>}
+          {status === 'connecting' && <span style={{ fontSize: 12, color: 'var(--text3)' }}>Connecting…</span>}
+        </div>
+        <div style={{
+          fontFamily: 'var(--mono)', fontSize: 18, letterSpacing: 2,
+          color: status === 'in-call' ? 'var(--teal)' : 'var(--text3)',
+        }}>
+          {fmt(elapsed)}
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div style={{ padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+
+        {status === 'connecting' && (
+          <div style={{ fontSize: 13, color: 'var(--text3)', padding: '8px 0', textAlign: 'center' }}>
+            Connecting to call server…
+          </div>
+        )}
+
+        {status === 'waiting' && (
+          <>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Waiting for partner</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                The call starts automatically when they join.
+              </div>
+            </div>
+            <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={onCancel}>
+              Cancel
+            </button>
+          </>
+        )}
+
+        {status === 'in-call' && (
+          <>
+            {isMuted && (
+              <div style={{ fontSize: 11, color: 'var(--coral)' }}>Microphone muted</div>
+            )}
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '4px 0' }}>
+              <button
+                onClick={onMute}
+                title={isMuted ? 'Unmute' : 'Mute'}
+                style={btnCircle(isMuted ? 'var(--coral)' : 'var(--surface2)', 48)}
+              >
+                {isMuted ? '🔇' : '🎤'}
+              </button>
+              <button onClick={onEnd} title="End call" style={btnCircle('var(--coral)', 56)}>
+                📵
+              </button>
+            </div>
+          </>
+        )}
+
+        {status === 'ended' && (
+          recordingBlob ? (
+            <>
+              <div style={{ width: '100%' }}>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                  Recording
+                </div>
+                <audio controls src={recordingUrl} style={{ width: '100%', accentColor: 'var(--teal)' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={onSubmit}
+                >
+                  🎙️ Submit to platform
+                </button>
+                <a href={recordingUrl} download={filename} style={{ width: '100%' }}>
+                  <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
+                    ⬇ Download
+                  </button>
+                </a>
+                <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center' }} onClick={onBack}>
+                  Back to assignments
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
+                Preparing recording…
+              </div>
+              <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={onBack}>
+                Back to assignments
+              </button>
+            </>
+          )
+        )}
+
+        {status === 'error' && (
+          <>
+            <div style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>{errorMsg}</div>
+            <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={onBack}>
+              Go back
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function btnCircle(bg, size) {
   return {
     width: size, height: size, borderRadius: '50%',
     background: bg, border: '1px solid transparent',
-    cursor: 'pointer', fontSize: size === 60 ? 22 : 20,
+    cursor: 'pointer', fontSize: size >= 56 ? 22 : 20,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   }
-}
-
-// ── Post-call panel ───────────────────────────────────────────────────────────
-function EndedPanel({ elapsed, recordingUrl, recordingBlob, mimeExt, roomId, onSubmit, onBack }) {
-  const filename = `voiceguard_${roomId}_${new Date().toISOString().slice(0, 10)}${mimeExt}`
-
-  return (
-    <>
-      <div style={circleStyle()}>📵</div>
-
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>Call ended</div>
-        <div style={{ fontSize: 14, color: 'var(--teal)', fontFamily: 'var(--mono)' }}>
-          {fmt(elapsed)}
-        </div>
-      </div>
-
-      {recordingBlob ? (
-        <>
-          <div style={{ width: '100%' }}>
-            <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-              Recording
-            </div>
-            <audio controls src={recordingUrl} style={{ width: '100%', accentColor: 'var(--teal)' }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-            <button
-              className="btn btn-primary btn-sm"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={onSubmit}
-            >
-              🎙️ Submit to platform
-            </button>
-            <a href={recordingUrl} download={filename} style={{ width: '100%' }}>
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
-                ⬇ Download recording
-              </button>
-            </a>
-            <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center' }} onClick={onBack}>
-              Back to assignments
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
-            Recording is being prepared…
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={onBack}>Back to assignments</button>
-        </>
-      )}
-    </>
-  )
 }
 
 // ── Submit modal ──────────────────────────────────────────────────────────────
@@ -518,9 +512,9 @@ function SubmitModal({ assignmentId, durationSec, callType, title, blob, ext, on
       fd.append('duration_sec',   durationSec)
       fd.append('recording_date', today)
       fd.append('off_script',     form.offScript)
-      if (form.audioQuality)    fd.append('audio_quality',    form.audioQuality)
-      if (form.offScriptNotes)  fd.append('off_script_notes', form.offScriptNotes)
-      if (form.volunteerNotes)  fd.append('volunteer_notes',  form.volunteerNotes)
+      if (form.audioQuality)   fd.append('audio_quality',    form.audioQuality)
+      if (form.offScriptNotes) fd.append('off_script_notes', form.offScriptNotes)
+      if (form.volunteerNotes) fd.append('volunteer_notes',  form.volunteerNotes)
       if (isVishing) {
         if (form.tGreeting)   fd.append('t_greeting',   form.tGreeting)
         if (form.tSetup)      fd.append('t_setup',      form.tSetup)

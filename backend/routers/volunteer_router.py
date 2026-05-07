@@ -94,7 +94,15 @@ async def submit_recording(
         models.Assignment.volunteer_id == user.id,
     ).first()
     if not assignment: raise HTTPException(403, "Assignment not found")
-    if assignment.recording: raise HTTPException(400, "Recording already submitted for this assignment")
+    if assignment.recording:
+        existing = assignment.recording
+        if existing.status != models.RecordingStatus.rejected:
+            raise HTTPException(400, "Recording already submitted for this assignment")
+        # Allow resubmission of rejected recordings — remove old file and record
+        if existing.file_path and os.path.exists(existing.file_path):
+            os.remove(existing.file_path)
+        db.delete(existing)
+        db.flush()
 
     # Save file
     ext = Path(audio_file.filename).suffix.lower() or ".wav"

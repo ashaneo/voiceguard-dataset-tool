@@ -14,6 +14,7 @@ export default function AdminRecordings() {
   const [category, setCategory]     = useState('')
   const [review, setReview]         = useState(null)
   const [confirm, setConfirm]       = useState(null)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => { load() }, [status, category])
 
@@ -27,7 +28,13 @@ export default function AdminRecordings() {
 
   async function handleDelete(id) {
     const ok = await apiDelete(`/api/admin/recordings/${id}`)
-    if (ok) { setConfirm(null); load() }
+    if (ok) {
+      setConfirm(null)
+      setDeleteError('')
+      load()
+    } else {
+      setDeleteError('Failed to delete recording. Please try again.')
+    }
   }
 
   return (
@@ -58,6 +65,12 @@ export default function AdminRecordings() {
         </div>
       </div>
       <div className="content">
+        {deleteError && (
+          <div className="alert alert-error" style={{ marginBottom: 16 }}>
+            {deleteError}
+            <button style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} onClick={() => setDeleteError('')}>✕</button>
+          </div>
+        )}
         <div className="panel">
           <div className="table-wrap">
             <table>
@@ -96,10 +109,14 @@ export default function AdminRecordings() {
                         {r.file_name && (
                           <a href={`/api/admin/recordings/${r.id}/download`} className="btn btn-ghost btn-sm" style={{ fontSize: 11, textDecoration: 'none' }} download>↓</a>
                         )}
-                        {confirm === r.id
-                          ? <button className="btn btn-sm" style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }} onClick={() => handleDelete(r.id)}>Confirm?</button>
-                          : <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--text3)' }} onClick={() => setConfirm(r.id)}>Delete</button>
-                        }
+                        {confirm === r.id ? (
+                          <>
+                            <button className="btn btn-sm" style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }} onClick={() => handleDelete(r.id)}>Confirm</button>
+                            <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => setConfirm(null)}>✕</button>
+                          </>
+                        ) : (
+                          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--text3)' }} onClick={() => { setDeleteError(''); setConfirm(r.id) }}>Delete</button>
+                        )}
                       </td>
                     </tr>
                   )

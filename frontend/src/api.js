@@ -7,7 +7,11 @@ export function logout() {
 }
 
 export async function apiFetch(path, opts = {}) {
-  const res = await fetch(path, { ...opts, headers: { ...authHdr(), ...opts.headers } })
+  const res = await fetch(path, {
+    cache: 'no-store',
+    ...opts,
+    headers: { ...authHdr(), ...opts.headers },
+  })
   if (res.status === 401) { logout(); return null }
   return res
 }

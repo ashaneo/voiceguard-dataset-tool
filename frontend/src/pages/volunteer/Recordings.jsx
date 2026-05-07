@@ -12,10 +12,12 @@ export default function Recordings() {
   const [recordings, setRecordings] = useState([])
   const [loading, setLoading]       = useState(true)
   const [confirm, setConfirm]       = useState(null)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => { load() }, [])
 
   function load() {
+    setLoading(true)
     apiGet('/api/volunteer/recordings').then(data => {
       if (data) setRecordings(data)
       setLoading(false)
@@ -24,7 +26,13 @@ export default function Recordings() {
 
   async function handleDelete(recording_id) {
     const ok = await apiDelete(`/api/volunteer/recordings/${recording_id}`)
-    if (ok) { setConfirm(null); load() }
+    if (ok) {
+      setConfirm(null)
+      setDeleteError('')
+      load()
+    } else {
+      setDeleteError('Failed to delete recording. Please try again.')
+    }
   }
 
   return (
@@ -36,6 +44,12 @@ export default function Recordings() {
         </div>
       </div>
       <div className="content">
+        {deleteError && (
+          <div className="alert alert-error" style={{ marginBottom: 16 }}>
+            {deleteError}
+            <button style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} onClick={() => setDeleteError('')}>✕</button>
+          </div>
+        )}
         <div className="panel">
           <div className="panel-header"><span className="panel-title">Submission history</span></div>
           <div className="table-wrap">
@@ -62,10 +76,32 @@ export default function Recordings() {
                     <td style={{ color: 'var(--text3)', fontSize: 12 }}>{new Date(r.submitted_at).toLocaleDateString()}</td>
                     <td style={{ fontSize: 12, color: 'var(--text2)', maxWidth: 200 }}>{r.admin_notes || '—'}</td>
                     <td>
-                      {confirm === r.recording_id
-                        ? <button className="btn btn-sm" style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }} onClick={() => handleDelete(r.recording_id)}>Confirm?</button>
-                        : <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--text3)' }} onClick={() => setConfirm(r.recording_id)}>Delete</button>
-                      }
+                      {confirm === r.recording_id ? (
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button
+                            className="btn btn-sm"
+                            style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }}
+                            onClick={() => handleDelete(r.recording_id)}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ fontSize: 11 }}
+                            onClick={() => setConfirm(null)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: 11, color: 'var(--text3)' }}
+                          onClick={() => { setDeleteError(''); setConfirm(r.recording_id) }}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
