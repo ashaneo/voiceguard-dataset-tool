@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { apiGet, apiDelete } from '../../api'
 
 const STATUS_CLS = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', reviewed: 'badge-reviewed' }
@@ -13,6 +13,8 @@ export default function Recordings() {
   const [loading, setLoading]       = useState(true)
   const [confirm, setConfirm]       = useState(null)
   const [deleteError, setDeleteError] = useState('')
+  const [playingId, setPlayingId]   = useState(null)
+  const token = localStorage.getItem('token')
 
   useEffect(() => { load() }, [])
 
@@ -66,44 +68,67 @@ export default function Recordings() {
                   <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>No recordings submitted yet</td></tr>
                 )}
                 {recordings.map(r => (
-                  <tr key={r.recording_id}>
-                    <td className="mono" style={{ fontSize: 12, color: 'var(--text2)' }}>{r.recording_id}</td>
-                    <td>{r.script_title || '—'}</td>
-                    <td><span className="badge badge-gray">{(r.script_category || '').replace('_', ' ')}</span></td>
-                    <td>{fmt(r.duration_sec)}</td>
-                    <td>{r.audio_quality ? <span className="badge badge-gray">{r.audio_quality}</span> : '—'}</td>
-                    <td><span className={`badge ${STATUS_CLS[r.status] || 'badge-gray'}`}>{r.status}</span></td>
-                    <td style={{ color: 'var(--text3)', fontSize: 12 }}>{new Date(r.submitted_at).toLocaleDateString()}</td>
-                    <td style={{ fontSize: 12, color: 'var(--text2)', maxWidth: 200 }}>{r.admin_notes || '—'}</td>
-                    <td>
-                      {confirm === r.recording_id ? (
+                  <Fragment key={r.recording_id}>
+                    <tr>
+                      <td className="mono" style={{ fontSize: 12, color: 'var(--text2)' }}>{r.recording_id}</td>
+                      <td>{r.script_title || '—'}</td>
+                      <td><span className="badge badge-gray">{(r.script_category || '').replace('_', ' ')}</span></td>
+                      <td>{fmt(r.duration_sec)}</td>
+                      <td>{r.audio_quality ? <span className="badge badge-gray">{r.audio_quality}</span> : '—'}</td>
+                      <td><span className={`badge ${STATUS_CLS[r.status] || 'badge-gray'}`}>{r.status}</span></td>
+                      <td style={{ color: 'var(--text3)', fontSize: 12 }}>{new Date(r.submitted_at).toLocaleDateString()}</td>
+                      <td style={{ fontSize: 12, color: 'var(--text2)', maxWidth: 200 }}>{r.admin_notes || '—'}</td>
+                      <td>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button
-                            className="btn btn-sm"
-                            style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }}
-                            onClick={() => handleDelete(r.recording_id)}
-                          >
-                            Confirm
-                          </button>
                           <button
                             className="btn btn-ghost btn-sm"
                             style={{ fontSize: 11 }}
-                            onClick={() => setConfirm(null)}
+                            onClick={() => setPlayingId(playingId === r.recording_id ? null : r.recording_id)}
                           >
-                            ✕
+                            {playingId === r.recording_id ? '✕ Hide' : '▶ Play'}
                           </button>
+                          {confirm === r.recording_id ? (
+                            <>
+                              <button
+                                className="btn btn-sm"
+                                style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }}
+                                onClick={() => handleDelete(r.recording_id)}
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                style={{ fontSize: 11 }}
+                                onClick={() => setConfirm(null)}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: 11, color: 'var(--text3)' }}
+                              onClick={() => { setDeleteError(''); setConfirm(r.recording_id) }}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
-                      ) : (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ fontSize: 11, color: 'var(--text3)' }}
-                          onClick={() => { setDeleteError(''); setConfirm(r.recording_id) }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                    {playingId === r.recording_id && (
+                      <tr>
+                        <td colSpan={9} style={{ padding: '8px 12px', background: 'var(--bg)' }}>
+                          <audio
+                            controls
+                            autoPlay
+                            style={{ width: '100%' }}
+                            src={`/api/volunteer/recordings/${r.recording_id}/download?token=${encodeURIComponent(token || '')}`}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

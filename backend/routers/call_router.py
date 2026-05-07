@@ -4,7 +4,7 @@ from database import get_db
 from auth import get_current_user
 from jose import JWTError, jwt
 import models, os, json
-from typing import Dict, List
+from typing import Dict, List, Set
 
 router = APIRouter()
 
@@ -16,6 +16,10 @@ rooms: Dict[str, List[WebSocket]] = {}
 
 # Per-process presence store: user_id -> WebSocket (the volunteer portal keeps this open)
 presence: Dict[int, WebSocket] = {}
+
+# Users currently inside an active call room (any role). Used so a 3rd caller is told the
+# callee is busy instead of ringing them mid-call.
+user_busy: Set[int] = set()
 
 
 def _token_to_user(token: str, db: Session):
@@ -162,6 +166,8 @@ async def call_websocket(
 
     peer = rooms[room_id][0] if rooms[room_id] else None
     rooms[room_id].append(websocket)
+    websocket._vg_user_id = user.id  # tag so we can clean up busy state on disconnect
+    user_busy.add(user.id)
 
     if peer:
         # We're second — we initiate the offer
@@ -169,23 +175,31 @@ async def call_websocket(
         await peer.send_json({"type": "peer_joined"})
     else:
         await websocket.send_json({"type": "waiting"})
-        # Ring the partner via their presence socket if they're online
+        # Look up the partner for this script
         partner_a = db.query(models.Assignment).filter(
             models.Assignment.script_id == script_id,
             models.Assignment.volunteer_id != user.id,
         ).first()
         if partner_a:
-            partner_ws = presence.get(partner_a.volunteer_id)
-            if partner_ws is not None:
-                await _safe_send_json(partner_ws, {
-                    "type": "incoming_call",
-                    "from_user_id": user.id,
-                    "from_name": user.full_name,
-                    "room_id": room_id,
-                    "assignment_id": partner_a.id,
-                    "script_id": script_id,
-                    "script_title": a.script.title,
+            if partner_a.volunteer_id in user_busy:
+                # Partner is in another call — tell the caller and skip the ring
+                await websocket.send_json({
+                    "type": "partner_busy",
+                    "partner_name": partner_a.volunteer.full_name,
                 })
+            else:
+                # Ring the partner via their presence socket if they're online
+                partner_ws = presence.get(partner_a.volunteer_id)
+                if partner_ws is not None:
+                    await _safe_send_json(partner_ws, {
+                        "type": "incoming_call",
+                        "from_user_id": user.id,
+                        "from_name": user.full_name,
+                        "room_id": room_id,
+                        "assignment_id": partner_a.id,
+                        "script_id": script_id,
+                        "script_title": a.script.title,
+                    })
 
     try:
         while True:
@@ -202,6 +216,15 @@ async def call_websocket(
         )
         if room_id in rooms and websocket in rooms[room_id]:
             rooms[room_id].remove(websocket)
+
+        # Drop busy flag if this user has no remaining sockets in any room
+        still_in_a_room = any(
+            getattr(sock, "_vg_user_id", None) == user.id
+            for room_socks in rooms.values()
+            for sock in room_socks
+        )
+        if not still_in_a_room:
+            user_busy.discard(user.id)
 
         # If the caller cancelled before the partner joined, stop the partner's ringtone.
         if was_lone:

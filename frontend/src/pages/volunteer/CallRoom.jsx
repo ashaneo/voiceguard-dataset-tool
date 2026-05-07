@@ -131,6 +131,12 @@ export default function CallRoom() {
         closingRef.current = true
         try { wsRef.current?.close() } catch (_) {}
         break
+      case 'partner_busy':
+        setStatus('error')
+        setErrorMsg(`${msg.partner_name || 'Your partner'} is on another call. Try again later.`)
+        closingRef.current = true
+        try { wsRef.current?.close() } catch (_) {}
+        break
       case 'error':
         setStatus('error'); setErrorMsg(msg.message || 'An error occurred.')
         break

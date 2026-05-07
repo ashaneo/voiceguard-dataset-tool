@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from database import get_db
-from auth import get_current_user
+from auth import get_current_user, SECRET_KEY, ALGORITHM
+from jose import JWTError, jwt
 import models, schemas
 from datetime import datetime
 from pathlib import Path
@@ -9,6 +11,20 @@ import os, uuid
 
 router = APIRouter()
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/uploads"))
+
+
+def _user_from_query_token(token: str, db: Session):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        uid = payload.get("sub")
+        if not uid:
+            return None
+    except JWTError:
+        return None
+    return db.query(models.User).filter(
+        models.User.id == int(uid),
+        models.User.is_active == True,
+    ).first()
 
 # ── My assignments ─────────────────────────────────────────────────
 @router.get("/assignments")
@@ -195,6 +211,23 @@ def delete_recording(recording_id: str, db: Session = Depends(get_db), user: mod
     db.delete(r)
     db.commit()
     return {"ok": True}
+
+# ── Stream/download a single recording (token via query param so <audio> can use it) ──
+@router.get("/recordings/{recording_id}/download")
+def download_recording(recording_id: str, token: str = Query(...), db: Session = Depends(get_db)):
+    user = _user_from_query_token(token, db)
+    if not user:
+        raise HTTPException(401, "Invalid token")
+    r = db.query(models.Recording).filter(models.Recording.recording_id == recording_id).first()
+    if not r:
+        raise HTTPException(404, "Recording not found")
+    if user.role != models.UserRole.admin and r.scammer_id != user.id and r.victim_id != user.id:
+        raise HTTPException(403, "Not authorized")
+    if not r.file_path or not os.path.exists(r.file_path):
+        raise HTTPException(404, "Audio file missing")
+    media_type = "audio/mpeg" if r.file_name and r.file_name.lower().endswith(".mp3") else "audio/webm"
+    return FileResponse(r.file_path, media_type=media_type, filename=r.file_name or f"{r.recording_id}.audio")
+
 
 # ── My recordings ──────────────────────────────────────────────────
 @router.get("/recordings")
