@@ -37,3 +37,4 @@ Thumbs.db
 *.swp
 
 docker-compose.override.yml
+frontend/node_modules/
