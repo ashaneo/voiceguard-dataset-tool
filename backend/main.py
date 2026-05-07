@@ -22,3 +22,7 @@ app.include_router(admin_router.router,     prefix="/api/admin",     tags=["admi
 app.include_router(volunteer_router.router, prefix="/api/volunteer", tags=["volunteer"])
 app.include_router(call_router.router,      prefix="/api/call",      tags=["call"])
 
+@app.get("/health", tags=["health"])
+def health():
+    return {"status": "ok", "message": "VoiceGuard Dataset Portal is running.", "version": "1.0.0"}
+
