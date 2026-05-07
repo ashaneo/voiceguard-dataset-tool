@@ -107,3 +107,14 @@ for _, row in df.iterrows():
 - Change the default admin password immediately after first login
 - Audio files are stored in the `uploads/` volume — back this up
 - The database is in the `pg_data` Docker volume — back this up too
+
+# First Admin
+curl -X POST https://dataset.neuralis-labs.com/api/auth/bootstrap \
+  -H "Content-Type: application/json" \
+  -H "X-Bootstrap-Token: <BOOTSTRAP_TOKEN value>" \
+  -d '{
+    "email": "you@example.com",
+    "password": "your-strong-password",
+    "full_name": "Your Name",
+    "participant_id": "ADMIN"
+  }'
