@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Assignments from './Assignments'
 import Recordings from './Recordings'
@@ -6,6 +6,7 @@ import Guide from './Guide'
 import Consent from './Consent'
 import About from './About'
 import Account from './Account'
+import IncomingCallModal from './IncomingCallModal'
 import { apiGet, logout } from '../../api'
 
 const NAV = [
@@ -26,11 +27,39 @@ const NAV = [
 export default function VolunteerPortal() {
   const [page, setPage] = useState('assignments')
   const [me, setMe] = useState(null)
+  const [incomingCall, setIncomingCall] = useState(null)
+  const presenceWsRef = useRef(null)
   const navigate = useNavigate()
   const name = localStorage.getItem('name') || '?'
   const pid  = localStorage.getItem('pid')  || '—'
 
   useEffect(() => { fetchMe() }, [])
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const url   = `${proto}//${window.location.host}/api/call/ws/presence?token=${token}`
+    const ws    = new WebSocket(url)
+    presenceWsRef.current = ws
+
+    ws.onmessage = (e) => {
+      let msg
+      try { msg = JSON.parse(e.data) } catch (_) { return }
+      if (msg.type === 'incoming_call') {
+        setIncomingCall(msg)
+      } else if (msg.type === 'call_cancelled') {
+        setIncomingCall(curr => (curr && curr.room_id === msg.room_id) ? null : curr)
+      }
+    }
+    ws.onclose = () => { presenceWsRef.current = null }
+
+    return () => {
+      try { ws.close() } catch (_) {}
+      presenceWsRef.current = null
+    }
+  }, [])
 
   async function fetchMe() {
     const data = await apiGet('/api/auth/me')
@@ -38,6 +67,21 @@ export default function VolunteerPortal() {
   }
 
   function handleLogout() { logout() }
+
+  function acceptCall() {
+    const c = incomingCall
+    setIncomingCall(null)
+    if (c) navigate(`/call/${c.room_id}?aid=${c.assignment_id}`)
+  }
+
+  function rejectCall() {
+    const c = incomingCall
+    setIncomingCall(null)
+    const ws = presenceWsRef.current
+    if (c && ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'reject', room_id: c.room_id }))
+    }
+  }
 
   return (
     <div className="app">
@@ -76,6 +120,8 @@ export default function VolunteerPortal() {
         {page === 'about'       && <About />}
         {page === 'account'     && <Account />}
       </div>
+
+      <IncomingCallModal call={incomingCall} onAccept={acceptCall} onReject={rejectCall} />
     </div>
   )
 }

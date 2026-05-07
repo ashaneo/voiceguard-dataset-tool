@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { apiGet, apiFetch, authHdr } from '../../api'
+import { blobToMp3 } from '../../lib/mp3'
 
 const STUN_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
 const roleLabel   = r => r === 'scammer' ? 'Speaker 1' : 'Speaker 2'
@@ -123,6 +124,12 @@ export default function CallRoom() {
         break
       case 'peer_left':
         handleCallEnded()
+        break
+      case 'call_rejected':
+        setStatus('error')
+        setErrorMsg(`${msg.by_name || 'Your partner'} declined the call.`)
+        closingRef.current = true
+        try { wsRef.current?.close() } catch (_) {}
         break
       case 'error':
         setStatus('error'); setErrorMsg(msg.message || 'An error occurred.')
@@ -298,7 +305,6 @@ export default function CallRoom() {
         elapsed={elapsed}
         recordingUrl={recordingUrl}
         recordingBlob={recordingBlob}
-        mimeExt={mimeExt(mimeRef.current)}
         roomId={roomId}
         onMute={toggleMute}
         onEnd={endCall}
@@ -336,8 +342,30 @@ export default function CallRoom() {
 }
 
 // ── Floating call card ────────────────────────────────────────────────────────
-function CallCard({ status, isMuted, elapsed, recordingUrl, recordingBlob, mimeExt, roomId, onMute, onEnd, onCancel, onSubmit, onBack, errorMsg }) {
-  const filename = `voiceguard_${roomId}_${new Date().toISOString().slice(0, 10)}${mimeExt}`
+function CallCard({ status, isMuted, elapsed, recordingUrl, recordingBlob, roomId, onMute, onEnd, onCancel, onSubmit, onBack, errorMsg }) {
+  const filename = `voiceguard_${roomId}_${new Date().toISOString().slice(0, 10)}.mp3`
+  const [encoding, setEncoding] = useState(false)
+  const [encodeError, setEncodeError] = useState('')
+
+  async function downloadMp3() {
+    if (!recordingBlob || encoding) return
+    setEncoding(true); setEncodeError('')
+    try {
+      const mp3Blob = await blobToMp3(recordingBlob)
+      const url = URL.createObjectURL(mp3Blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      setEncodeError('Could not encode MP3. Try again.')
+    } finally {
+      setEncoding(false)
+    }
+  }
 
   const borderColor =
     status === 'in-call' ? 'var(--teal)' :
@@ -441,11 +469,17 @@ function CallCard({ status, isMuted, elapsed, recordingUrl, recordingBlob, mimeE
                 >
                   🎙️ Submit to platform
                 </button>
-                <a href={recordingUrl} download={filename} style={{ width: '100%' }}>
-                  <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
-                    ⬇ Download
-                  </button>
-                </a>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={downloadMp3}
+                  disabled={encoding}
+                >
+                  {encoding ? <><span className="spinner" /> Encoding MP3…</> : '⬇ Download MP3'}
+                </button>
+                {encodeError && (
+                  <div style={{ fontSize: 11, color: 'var(--coral)', textAlign: 'center' }}>{encodeError}</div>
+                )}
                 <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center' }} onClick={onBack}>
                   Back to assignments
                 </button>
