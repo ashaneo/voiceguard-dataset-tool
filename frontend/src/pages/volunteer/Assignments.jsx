@@ -12,7 +12,12 @@ export default function Assignments({ me }) {
   const [submitModal, setSubmitModal] = useState(null)
   const navigate = useNavigate()
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    // Re-fetch when the tab/window regains focus (covers returning from call room)
+    window.addEventListener('focus', load)
+    return () => window.removeEventListener('focus', load)
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -163,7 +168,7 @@ function ScriptCard({ a, onView, onSubmit, onCall }) {
           {s.has_content && (
             <button className="btn btn-ghost btn-sm" onClick={() => onView(s.id, s.title)}>📄 View script</button>
           )}
-          {a.partner && !a.completed && (
+          {a.partner && !a.completed && (!rec || rec.status === 'rejected') && (
             <button className="btn btn-sm" style={{ background: 'var(--teal)', color: '#fff', border: 'none' }}
               onClick={() => onCall(a.id, s.id)}>
               📞 Join call
