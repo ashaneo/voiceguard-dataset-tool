@@ -169,6 +169,25 @@ def change_password(data: schemas.PasswordChange, db: Session = Depends(get_db),
     db.commit()
     return {"ok": True}
 
+# ── Delete own recording ───────────────────────────────────────────
+@router.delete("/recordings/{recording_id}")
+def delete_recording(recording_id: str, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    r = db.query(models.Recording).filter(models.Recording.recording_id == recording_id).first()
+    if not r:
+        raise HTTPException(404, "Recording not found")
+    if r.scammer_id != user.id and r.victim_id != user.id:
+        raise HTTPException(403, "Not authorized to delete this recording")
+    # If the assignment was marked completed (admin approved), roll it back
+    if r.assignment and r.assignment.completed:
+        r.assignment.completed = False
+        r.assignment.completed_date = None
+    # Delete audio file from disk
+    if r.file_path and os.path.exists(r.file_path):
+        os.remove(r.file_path)
+    db.delete(r)
+    db.commit()
+    return {"ok": True}
+
 # ── My recordings ──────────────────────────────────────────────────
 @router.get("/recordings")
 def my_recordings(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):

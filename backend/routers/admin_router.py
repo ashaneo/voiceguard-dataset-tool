@@ -237,3 +237,16 @@ def download_recording(recording_id: int, db: Session = Depends(get_db), _=Depen
     if not r or not r.file_path: raise HTTPException(404, "File not found")
     if not os.path.exists(r.file_path): raise HTTPException(404, "File missing from storage")
     return FileResponse(r.file_path, filename=r.file_name, media_type="audio/wav")
+
+@router.delete("/recordings/{recording_id}")
+def delete_recording(recording_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+    import os
+    r = db.query(models.Recording).filter(models.Recording.id == recording_id).first()
+    if not r: raise HTTPException(404, "Recording not found")
+    if r.assignment and r.assignment.completed:
+        r.assignment.completed = False
+        r.assignment.completed_date = None
+    if r.file_path and os.path.exists(r.file_path):
+        os.remove(r.file_path)
+    db.delete(r); db.commit()
+    return {"ok": True}

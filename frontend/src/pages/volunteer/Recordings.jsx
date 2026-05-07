@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { apiGet } from '../../api'
+import { apiGet, apiDelete } from '../../api'
 
 const STATUS_CLS = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', reviewed: 'badge-reviewed' }
 
@@ -10,14 +10,22 @@ function fmt(sec) {
 
 export default function Recordings() {
   const [recordings, setRecordings] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]       = useState(true)
+  const [confirm, setConfirm]       = useState(null)
 
-  useEffect(() => {
+  useEffect(() => { load() }, [])
+
+  function load() {
     apiGet('/api/volunteer/recordings').then(data => {
       if (data) setRecordings(data)
       setLoading(false)
     })
-  }, [])
+  }
+
+  async function handleDelete(recording_id) {
+    const ok = await apiDelete(`/api/volunteer/recordings/${recording_id}`)
+    if (ok) { setConfirm(null); load() }
+  }
 
   return (
     <>
@@ -34,14 +42,14 @@ export default function Recordings() {
             <table>
               <thead><tr>
                 <th>Recording ID</th><th>Script</th><th>Category</th>
-                <th>Duration</th><th>Quality</th><th>Status</th><th>Submitted</th><th>Notes from admin</th>
+                <th>Duration</th><th>Quality</th><th>Status</th><th>Submitted</th><th>Notes from admin</th><th></th>
               </tr></thead>
               <tbody>
                 {loading && (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>Loading...</td></tr>
+                  <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>Loading...</td></tr>
                 )}
                 {!loading && !recordings.length && (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>No recordings submitted yet</td></tr>
+                  <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>No recordings submitted yet</td></tr>
                 )}
                 {recordings.map(r => (
                   <tr key={r.recording_id}>
@@ -53,6 +61,12 @@ export default function Recordings() {
                     <td><span className={`badge ${STATUS_CLS[r.status] || 'badge-gray'}`}>{r.status}</span></td>
                     <td style={{ color: 'var(--text3)', fontSize: 12 }}>{new Date(r.submitted_at).toLocaleDateString()}</td>
                     <td style={{ fontSize: 12, color: 'var(--text2)', maxWidth: 200 }}>{r.admin_notes || '—'}</td>
+                    <td>
+                      {confirm === r.recording_id
+                        ? <button className="btn btn-sm" style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }} onClick={() => handleDelete(r.recording_id)}>Confirm?</button>
+                        : <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--text3)' }} onClick={() => setConfirm(r.recording_id)}>Delete</button>
+                      }
+                    </td>
                   </tr>
                 ))}
               </tbody>

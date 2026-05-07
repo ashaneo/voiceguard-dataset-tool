@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { apiGet, apiPatch } from '../../api'
+import { apiGet, apiPatch, apiDelete } from '../../api'
 
 const STATUS_CLS = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', reviewed: 'badge-reviewed' }
 
@@ -13,6 +13,7 @@ export default function AdminRecordings() {
   const [status, setStatus]         = useState('')
   const [category, setCategory]     = useState('')
   const [review, setReview]         = useState(null)
+  const [confirm, setConfirm]       = useState(null)
 
   useEffect(() => { load() }, [status, category])
 
@@ -22,6 +23,11 @@ export default function AdminRecordings() {
     if (category) params.set('category', category)
     const data = await apiGet(`/api/admin/recordings${params.toString() ? '?' + params : ''}`)
     if (data) setRecordings(data)
+  }
+
+  async function handleDelete(id) {
+    const ok = await apiDelete(`/api/admin/recordings/${id}`)
+    if (ok) { setConfirm(null); load() }
   }
 
   return (
@@ -90,6 +96,10 @@ export default function AdminRecordings() {
                         {r.file_name && (
                           <a href={`/api/admin/recordings/${r.id}/download`} className="btn btn-ghost btn-sm" style={{ fontSize: 11, textDecoration: 'none' }} download>↓</a>
                         )}
+                        {confirm === r.id
+                          ? <button className="btn btn-sm" style={{ background: 'var(--coral)', color: '#fff', border: 'none', fontSize: 11 }} onClick={() => handleDelete(r.id)}>Confirm?</button>
+                          : <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--text3)' }} onClick={() => setConfirm(r.id)}>Delete</button>
+                        }
                       </td>
                     </tr>
                   )
