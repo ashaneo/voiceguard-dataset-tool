@@ -221,8 +221,7 @@ export default function CallRoom() {
 
   // ── Call lifecycle ──────────────────────────────────────────────────────────
   function handleCallEnded() {
-    stopTimer()
-    stopRecorder()
+    doCleanup()
     setStatus('ended')
   }
 

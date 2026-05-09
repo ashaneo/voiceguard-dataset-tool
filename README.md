@@ -39,11 +39,34 @@ docker compose up --build
 ```
 docker-compose.yml
 ├── db        — PostgreSQL 16
-└── app       — FastAPI + SQLAlchemy
-      ├── /api/auth/*      — JWT login
-      ├── /api/admin/*     — admin endpoints
-      ├── /api/volunteer/* — volunteer endpoints
-      └── /frontend/*      — static HTML pages
+├── app       — FastAPI + SQLAlchemy
+│     ├── /api/auth/login         — JWT login
+│     ├── /api/auth/bootstrap     — first-admin creation (token-gated)
+│     ├── /api/admin/*            — admin endpoints
+│     ├── /api/volunteer/*        — volunteer endpoints
+│     └── /health                 — liveness probe
+└── frontend  — React 18 + Vite (react-router-dom)
+      └── served as static build under /
+```
+
+### Frontend routes (React Router)
+
+```
+/                       — Login
+/volunteer              — Volunteer portal (guarded)
+  ├── assignments       — Assigned scripts
+  ├── recordings        — Submit / track recordings
+  ├── guide             — How-to guide
+  ├── consent           — Consent form
+  ├── about             — About page
+  └── account           — Account settings
+/admin                  — Admin portal (guarded)
+  ├── dashboard         — Stats and class balance
+  ├── recordings        — Review recordings
+  ├── scripts           — Manage scripts
+  ├── volunteers        — Manage volunteers
+  └── assignments       — Manage assignments
+/call/:roomId           — Call room (auth-guarded)
 ```
 
 ## File layout
@@ -63,10 +86,18 @@ voiceguard-app/
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
-│   ├── index.html         — Login page
-│   ├── volunteer.html     — Volunteer portal
-│   ├── admin.html         — Admin portal
-│   └── static/css/style.css
+│   ├── src/
+│   │   ├── App.jsx        — Router + route definitions
+│   │   ├── main.jsx       — React entry
+│   │   ├── api.js         — API client
+│   │   ├── pages/
+│   │   │   ├── Login.jsx
+│   │   │   ├── volunteer/ — Assignments, Recordings, Guide, Consent, About, Account
+│   │   │   └── admin/     — Dashboard, Recordings, Scripts, Volunteers, Assignments
+│   │   └── style.css
+│   ├── package.json       — React 18 + Vite + react-router-dom
+│   ├── vite.config.js
+│   └── Dockerfile
 ├── uploads/               — Audio file storage (Docker volume)
 ├── scripts_store/         — Script PDF storage (optional)
 └── docker-compose.yml
@@ -108,7 +139,11 @@ for _, row in df.iterrows():
 - Audio files are stored in the `uploads/` volume — back this up
 - The database is in the `pg_data` Docker volume — back this up too
 
-# First Admin
+## Bootstrapping the first admin
+
+The first admin account is created via a token-gated endpoint. Set `BOOTSTRAP_TOKEN` in your environment / `docker-compose.yml`, then:
+
+```bash
 curl -X POST https://dataset.neuralis-labs.com/api/auth/bootstrap \
   -H "Content-Type: application/json" \
   -H "X-Bootstrap-Token: <BOOTSTRAP_TOKEN value>" \
@@ -118,3 +153,17 @@ curl -X POST https://dataset.neuralis-labs.com/api/auth/bootstrap \
     "full_name": "Your Name",
     "participant_id": "ADMIN"
   }'
+```
+
+Notes:
+- The endpoint only succeeds while no admin exists; subsequent calls are rejected.
+- Rotate or unset `BOOTSTRAP_TOKEN` after the first admin is created.
+- For local development, replace the URL with `http://localhost:8000`.
+
+## Health check
+
+```bash
+curl http://localhost:8000/health
+```
+
+Used as a liveness probe for the `app` container.
